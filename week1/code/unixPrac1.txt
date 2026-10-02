@@ -1,0 +1,18 @@
+#1
+wc -l ../data/fasta/407228326.fasta ../data/fasta/407228412.fasta ../data/fasta/e_coli.fasta
+# 78258 total, wc -l counts newline characters. But the two numbered FASTA files do not end with a final newline, so their wc -l count is one less then the number of displayed text lines. 
+
+#2
+tail -n +2 ../data/fasta/e_coli.fasta
+
+#3
+tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | wc -c
+# Answer 4686137
+
+#4
+tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | tr '[:lower:]' '[:upper:]' | grep -o 'ATGC' | wc -l
+# Answer 21968
+
+#5
+tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | awk '{seq=toupper($0); s1=seq; s2=seq; AT=gsub(/[AT]/,"",s1); GC=gsub(/[GC]/,"",s2); print AT/GC}'
+
