@@ -15,4 +15,5 @@ tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | tr '[:lower:]' '[:upper:]
 
 #5
 tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | awk '{seq=toupper($0); s1=seq; s2=seq; AT=gsub(/[AT]/,"",s1); GC=gsub(/[GC]/,"",s2); print AT/GC}'
+# Answer 0.969228
 
