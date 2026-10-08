@@ -6,7 +6,6 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-# Check input file
 if [ ! -f "$1" ] || [ ! -r "$1" ]; then
     echo "Error: File '$1' not found or unreadable." >&2
     exit 1
