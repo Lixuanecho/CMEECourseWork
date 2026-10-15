@@ -85,9 +85,3 @@ sh -n csvtospace.sh
 FASTA datasets are provided through the MulQuaBio UNIX practical and stored in `data/fasta/`.
 
 Original input files remain unchanged. Generated outputs are stored separately in `results/`.
-
-
-## References
-
-- [MulQuaBio — UNIX and Linux](https://mulquabio.github.io/MQB/notebooks/unix.html)
-- [MulQuaBio — Shell Scripting](https://mulquabio.github.io/MQB/notebooks/shell-scripting.html)
