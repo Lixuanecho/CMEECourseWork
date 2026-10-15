@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 # Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
 # Script: tabtocsv.sh
 # Desc: Convert a tab-delimited file to a comma-delimited file.
-#       Preserve empty fields and save the output in ../results/.
+#       Preserve empty fields and save the output in results/.
 # Arguments: 1 -> Path to a tab-delimited input file
 # Date: 8 Oct 2026
 
@@ -25,13 +25,13 @@ if [ ! -r "$input_file" ]; then
     exit 1
 fi
 
-if ! mkdir -p "../results"; then
+if ! mkdir -p "results"; then
     echo "Error: Could not create the results directory." >&2
     exit 1
 fi
 
 filename=$(basename -- "$input_file")
-output_file="../results/${filename}.csv"
+output_file="results/${filename}.csv"
 
 
 echo "Creating a comma-delimited version of '$input_file' ..."

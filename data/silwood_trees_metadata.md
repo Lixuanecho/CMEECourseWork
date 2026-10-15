@@ -55,13 +55,6 @@ Permitted taxon pairs:
 An accepted record is an oak when its canonical genus is exactly `Quercus`.
 
 
-
-
-
-
-
-
-
 ## Duplicate identifiers
 
 Process input rows in file order. The first otherwise valid row with a record identifier may be accepted. Reject a later row whose identifier duplicates an already accepted row.
@@ -92,16 +85,6 @@ Collect every applicable reason for an invalid row. Use the following exact text
 Do not add a range reason when the value is missing or cannot be converted to a number. 
 
 Do not add `invalid genus/species combination` unless both values are individually recognised.
-
-
-
-
-
-
-
-
-
-
 
 
 ## Output files and formats

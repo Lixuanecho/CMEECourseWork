@@ -1,18 +1,22 @@
 #1
 wc -l ../data/fasta/407228326.fasta ../data/fasta/407228412.fasta ../data/fasta/e_coli.fasta
-# 78258 total, wc -l counts newline characters. But the two numbered FASTA files do not end with a final newline, so their wc -l count is one less then the number of displayed text lines. 
+# wc -l counts newline characters in each FASTA file and reports their total (78258). The two numbered FASTA files lack a final newline, so their counts are one less than their displayed text lines.
 
 #2
 tail -n +2 ../data/fasta/e_coli.fasta
+## tail -n +2 prints the file from line 2 onwards, excluding the FASTA header. Therefore, the output contains only the E. coli nucleotide sequence lines.
 
 #3
 tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | wc -c
 # Answer 4686137
+# tail excludes the FASTA header, tr -d '\r\n' removes carriage returns and newlines, and wc -c counts the remaining bytes. As each nucleotide symbol is a single ASCII character, the result (4686137) represents the total number of sequence positions, including ambiguous bases such as N, R, Y, M and W.
 
 #4
 tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | tr '[:lower:]' '[:upper:]' | grep -o 'ATGC' | wc -l
 # Answer 21968
+# tail removes the header, tr joins wrapped sequence lines and converts bases to uppercase, and grep -o outputs each literal ATGC match separately. wc -l counts these matches (21968). Joining lines ensures motifs spanning line breaks are detected, while retaining ambiguous bases prevents artificial matches.
 
 #5
 tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | awk '{seq=toupper($0); s1=seq; s2=seq; AT=gsub(/[AT]/,"",s1); GC=gsub(/[GC]/,"",s2); print AT/GC}'
 # Answer 0.969228
+# tail excludes the FASTA header, and tr joins the sequence lines. awk converts the sequence to uppercase, counts A/T and G/C separately using gsub, and calculates their decimal ratio (A+T)/(G+C). The result (0.969228) represents approximately 0.969 AT bases per GC base. Ambiguous bases are excluded because their identities cannot be determined.

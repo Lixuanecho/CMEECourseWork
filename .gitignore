@@ -1,7 +1,22 @@
+# Temporary and backup files
 *~
 *.tmp
+*.swp
+*.swo
+.DS_Store
 
-#gengrated output(do not commit)
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated outputs (do not commit)
 /results/
-#temporary files#
+
+# Temporary experiments
 /sandbox/
+
+# R temporary files
+.Rhistory
+.RData
+.Rproj.user/

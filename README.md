@@ -1,87 +1,90 @@
-# CMEECourseWork Assignment 1
+# Bootcamp Assignment Repository
 
 **Author:** Lixuan Zhu  
-**Programme:** MSc Computational Methods in Ecology and Evolution  
-**Date:** October 2026
+**Course:** [MulQuaBio (MQB)](https://mulquabio.github.io/MQB/intro.html)
 
-## 1. Overview
+## Overview
 
-Coursework for the Biological Computing Bootcamp, covering UNIX commands, FASTA sequence analysis and shell scripting.
+- **Assignment 1 — Unix and Shell Scripting:** FASTA exercises and two delimited-text conversion scripts.
+- **Assignment 2 — Python Tree-survey Validation:** Validation of synthetic Silwood tree records, reporting excluded observations and summarising accepted oak records.
 
-## 2. Project Structure
+## Repository Structure
 
 ```text
 CMEECourseWork/
 ├── README.md
+├── .gitignore
 ├── code/
-│   ├── unixPrac1.txt
+│   ├── clean_silwood_trees.py
+│   ├── test_silwood_trees.py
+│   ├── csvtospace.sh
 │   ├── tabtocsv.sh
-│   └── csvtospace.sh
+│   └── unixPrac1.txt
 ├── data/
-│   └── fasta/
-│       ├── 407228326.fasta
-│       ├── 407228412.fasta
-│       └── e_coli.fasta
-├── results/
-└── sandbox/
+│   ├── fasta/
+│   ├── temperatures/
+│   ├── silwood_trees_metadata.md
+│   ├── silwood_trees_raw.csv
+│   └── tab-example.tsv
+├── results/                      # generated outputs
+└── sandbox/                      # temporary work
 ```
 
-- `code/` — Scripts and UNIX exercises.
-- `data/` — Input datasets.
-- `results/` — Generated outputs.
-- `sandbox/` — Temporary files and testing.
+## Requirements
 
-## 3. Requirements
+Unix/Linux, Bash, Python 3 and standard command-line utilities. Run all commands from the repository root.
 
-- Linux or another UNIX-like environment.
-- Bash and standard UNIX utilities (`wc`, `tail`, `tr`, `grep`, `awk`).
+## Assignment 1 — Unix and Shell Scripting
 
-## 4. Usage
-
-Run commands from the `code/` directory:
+- `unixPrac1.txt`: Unix/FASTA exercises and explanations.
+- `tabtocsv.sh`: Converts tab-separated text to comma-separated text.
+- `csvtospace.sh`: Replaces commas with spaces in a CSV file.
 
 ```bash
-cd code
+bash code/tabtocsv.sh data/tab-example.tsv
+bash code/csvtospace.sh results/tab-example.tsv.csv
 ```
 
-### FASTA Analysis
+Both scripts write to `results/`. The second command uses the output produced by the first.
 
-`unixPrac1.txt` contains five UNIX exercises covering sequence inspection, length calculation, motif counting and AT/GC ratio analysis.
+## Assignment 2 — Python Tree-survey Validation
 
-Example:
+**Inputs:** `data/silwood_trees_raw.csv` (unchanged source data) and `data/silwood_trees_metadata.md` (validation rules and output specifications).  
+**Implementation:** `code/clean_silwood_trees.py`; **tests:** `code/test_silwood_trees.py` (to be added).
+
+### Workflow (pseudocode)
+
+```text
+Read the source CSV.
+For each row, validate fields against the metadata.
+  If valid: retain the cleaned record and its accepted ID.
+  Otherwise: record the original row and all rejection reasons.
+Count oak species from accepted records only.
+Write the cleaned records, issues and oak counts as separate CSV files.
+```
+
+### Run and Test
 
 ```bash
-tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | wc -c
+python3 code/clean_silwood_trees.py
+python3 code/test_silwood_trees.py
 ```
 
-Expected output: `4686137` bases.
+**Outputs:**
 
+| File | Content |
+| --- | --- |
+| `results/silwood_trees_clean.csv` | Accepted and cleaned records |
+| `results/silwood_tree_issues.csv` | Rejected rows and reasons |
+| `results/oak_species_counts.csv` | Oak counts by species |
 
-### Shell Scripts
+## AI Assistance
 
-`tabtocsv.sh` converts tabs to commas, while `csvtospace.sh` replaces commas with spaces.
+ChatGPT  was used for translation, documentation refinement, and clarification of programming
+concepts. Suggestions were independently reviewed against the course materials and assignment 
+requirements, with code functionality checked through local execution.
 
-Example:
+## References
 
-```bash
-mkdir -p ../sandbox
-printf 'species\tcount\noak\t3\n' > ../sandbox/example.tsv
-
-bash tabtocsv.sh ../sandbox/example.tsv
-sh csvtospace.sh ../results/example.tsv.csv
-```
-
-Outputs are saved in `results/`. Both scripts validate input files and return an error for invalid arguments.
-
-To check shell syntax:
-
-```bash
-bash -n tabtocsv.sh
-sh -n csvtospace.sh
-```
-
-## 5. Data
-
-FASTA datasets are provided through the MulQuaBio UNIX practical and stored in `data/fasta/`.
-
-Original input files remain unchanged. Generated outputs are stored separately in `results/`.
+- [MulQuaBio course](https://mulquabio.github.io/MQB/intro.html)
+- [Tree-survey practical](https://mulquabio.github.io/MQB/notebooks/python.html#practical-validating-tree-survey-records)

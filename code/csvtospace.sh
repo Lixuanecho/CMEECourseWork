@@ -11,10 +11,10 @@ if [ ! -f "$1" ] || [ ! -r "$1" ]; then
     exit 1
 fi
 
-mkdir -p ../results || exit 1
-output="../results/$(basename "$1").txt"
+mkdir -p results || exit 1
+output="results/$(basename "$1").txt"
 
-# Convert commas to spaces
+
 if tr ',' ' ' < "$1" > "$output"; then
     echo "Done! Output saved to $output"
 else
