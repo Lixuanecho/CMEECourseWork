@@ -1,2 +1,7 @@
 *~
 *.tmp
+
+#gengrated output(do not commit)
+/results/
+#temporary files#
+/sandbox/
