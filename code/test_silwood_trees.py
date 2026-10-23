@@ -176,6 +176,47 @@ class TestProcessing(unittest.TestCase):
         ])
         self.assertEqual(trees.summarise_oaks([]), [])
 
+    def test_oak_near_match_rejected(self):
+        """A near-match genus must not be accepted as an oak."""
+
+        rows = [
+            make_record(record_id="ST001"),
+            make_record(
+                record_id="ST002",
+                genus="Quercuss",
+                species="robur",
+            ),
+        ]
+
+        accepted, issues = trees.process_records(rows)
+
+        self.assertEqual(len(accepted), 1)
+        self.assertEqual(len(issues), 1)
+
+        self.assertEqual(
+            trees.summarise_oaks(accepted),
+            [{"species": "robur", "count": "1"}],
+        )
+
+
+    def test_rejected_oak_excluded_from_summary(self):
+        """An invalid Quercus observation must not affect oak counts."""
+        rows = [
+            make_record(record_id="ST001", genus="Quercus", species="robur"),
+            make_record(record_id="ST002", genus="Quercus", species="robur",
+                        distance_m="0"),
+        ]
+
+        clean_records, issues = trees.process_records(rows)
+        self.assertEqual([row["record_id"] for row in clean_records], ["ST001"])
+        self.assertEqual(issues, [{
+            "source_row": "3", "record_id": "ST002",
+            "reasons": "distance_m out of range",
+        }])
+        self.assertEqual(trees.summarise_oaks(clean_records), [
+            {"species": "robur", "count": "1"},
+        ])
+
 
 class TestFileWorkflow(unittest.TestCase):
     """Test I/O, stable reruns, and creation of the results directory."""
