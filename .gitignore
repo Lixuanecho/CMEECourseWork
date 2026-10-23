@@ -7,10 +7,9 @@
 
 # Python cache and compiled files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 
-# Generated outputs (do not commit)
+# Generated outputs
 /results/
 
 # Temporary experiments

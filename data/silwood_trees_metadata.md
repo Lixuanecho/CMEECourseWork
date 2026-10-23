@@ -28,11 +28,8 @@ For `location`, `genus` and `species`:
 2. Match permitted values without regard to letter case.
 3. Write accepted values using the canonical spelling and case below.
 
-
 Do not correct misspellings, infer missing values or replace an unrecognised value with the nearest permitted value.
-
 For numeric fields, non-finite values such as `nan` and `inf` are invalid and must receive the corresponding `invalid <field>` reason.
-
 
 Canonical locations:
 
@@ -53,7 +50,6 @@ Permitted taxon pairs:
 | `Fraxinus` | `excelsior` |
 
 An accepted record is an oak when its canonical genus is exactly `Quercus`.
-
 
 ## Duplicate identifiers
 
@@ -82,10 +78,7 @@ Collect every applicable reason for an invalid row. Use the following exact text
 15. `invalid angle_degrees`
 16. `angle_degrees out of range`
 
-Do not add a range reason when the value is missing or cannot be converted to a number. 
-
-Do not add `invalid genus/species combination` unless both values are individually recognised.
-
+Do not add a range reason when the value is missing or cannot be converted to a number. Do not add `invalid genus/species combination` unless both values are individually recognised.
 
 ## Output files and formats
 
