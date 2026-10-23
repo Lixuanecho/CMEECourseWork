@@ -130,103 +130,208 @@ The cleaner follows the supplied synthetic survey schema; missing values and mis
 ### AI use
 On October 16, I used ChatGPT as a tutor and gained insights into handling error messages, testing inputs, and the wording of README files.
 
-# Assignment 3 — R practicals
 
+# Assignment 3 — R practicals
+## 3.1 Tree-height Practicals
 ## 3.1 Tree-height Practicals
 
-### 1. `TreeHeight.R` — Supplied Tree Measurements
-
-**Input:** `data/trees.csv` (120 records; `Species`, `Distance.m`, `Angle.degrees`).
-
-**Output:** `results/TreeHts.csv`, preserving the original data and adding a `height_m` column.
-
-**Method:** Calculate tree height using:
+`TreeHeight.R` and `get_TreeHeight.R` use the same formula:
 
 `height_m = Distance.m × tan(Angle.degrees × π / 180)`
 
-Validate column names and ensure measurements are finite and within the required ranges (`0 < distance ≤ 100 m`, `0 < angle < 90°`).
+|  | `TreeHeight.R` | `get_TreeHeight.R` |
+| --- | --- | --- |
+| Input | Fixed to `data/trees.csv` | One CSV path given on the command line |
+| Accepted rows | Exactly 120 rows | 1 row or more |
+| Output | `results/TreeHts.csv` | `results/<input file name>_treeheights.csv` |
+| Output columns | `Species,Distance.m,Angle.degrees,height_m` | `Species,Distance.m,Angle.degrees,height_m` |
 
-**Run** from the repository root:
+Both scripts reject input with:
+
+- Wrong or missing column names
+- Non-numeric or non-finite values
+- `Distance.m` outside the range `(0, 100]` m
+- `Angle.degrees` outside the range `(0, 90)`°
+
+For a bad measurement, the error names the column and the failing data row(s), for example `Invalid data row(s): 4`.
+
+Both scripts replace their output file on rerun, and write it only after all checks pass, so bad input never creates or overwrites a result.
+
+---
+
+### 1. `TreeHeight.R`
+
+This script defines the function `TreeHeight(degrees, distance)`, which converts the angle from degrees to radians and returns `distance × tan(radians)`. It prints the example `TreeHeight(37, 40)`, then applies the function to every row of `data/trees.csv`.
+
+**Input:** `data/trees.csv` (kept unchanged)
+
+**Output:** `results/TreeHts.csv`. The three input columns are kept in their original order, and `height_m` is added as the fourth column.
+
+**Run** (from the repository root):
 
 ```bash
 Rscript code/TreeHeight.R
 ```
 
-Alternatively, run in an R session started from the repository root:
+or, in an R session started at the repository root:
 
 ```r
 source("code/TreeHeight.R")
 ```
 
-**Check:** The output should contain 121 lines (header + 120 records). Verify that the fourth record matches an independent trigonometric calculation. For a simple test case, a distance of 8 m at 45° should produce a height of 8 m. Rerunning the script should overwrite the existing output.
+How to check:
+
+Test 1: Header and row count.
 
 ```bash
-wc -l results/TreeHts.csv
-
-Rscript -e 'x <- read.csv("results/TreeHts.csv"); stopifnot(isTRUE(all.equal(x$height_m[4], x$Distance.m[4] * tan(x$Angle.degrees[4] * pi / 180))))'
+wc -l results/TreeHts.csv          # Expected: 121 (header + 120 records)
+head -n 1 results/TreeHts.csv      # Expected: "Species","Distance.m","Angle.degrees","height_m"
 ```
 
-The first command checks the output line count; the second independently verifies the fourth height calculation using `stopifnot()`.
+Test 2: The script prints the result of the example call `print(TreeHeight(37, 40))`.
+
+```
+[1] 30.14216
+```
+
+Test 3: Rows are in the same order as the input. The first three output columns must equal the input table.
+
+```bash
+Rscript -e 'a <- read.csv("data/trees.csv"); b <- read.csv("results/TreeHts.csv"); stopifnot(isTRUE(all.equal(a, b[1:3]))); cat("PASS\n")'
+```
+
+Test 4: Rerun replaces the result rather than adding rows.
+
+```bash
+Rscript code/TreeHeight.R
+wc -l results/TreeHts.csv          # Still 121
+```
+
+Test 5: Check one record independently. The fourth record was calculated on a scientific calculator set to degree mode (DEG). The calculator takes the angle in degrees directly, so this check does not reuse the script's degree-to-radian step. The result was then compared with the script's output:
+
+```bash
+sed -n 5p results/TreeHts.csv      # Line 5 = header + record 4
+```
+
+| Step | Value | Unit |
+| --- | --- | --- |
+| Species | Fraxinus excelsior | – |
+| Distance.m (input) | 34.6166691975668 | m |
+| Angle.degrees (input) | 23.336126555223 | ° |
+| Calculator (DEG mode): tan(23.336126555223) | 0.431416 | – |
+| Calculator: 34.6166691975668 × 0.431416 | 14.934 | m |
+| Script output `height_m` | 14.934175 | m |
+| Agreement | Difference < 0.001 m | m |
+
+Why the value is plausible:
+
+- The angle is less than 45°, and tan(45°) = 1, so the height must be less than the distance (14.9 m < 34.6 m).
+- tan(23.3°) is about 0.43, so the height should be a little under half the distance.
+- A height of about 15 m is biologically plausible for an ash tree.
+
+Test 6: An invalid measurement is rejected, and the result is not overwritten. `TreeHeight.R` only reads `data/trees.csv`, so this test temporarily changes one value in that file and then restores it. Only one measurement is changed, and the columns and the 120 rows are kept, so only the distance check can fail.
+
+```bash
+mkdir -p sandbox
+cp data/trees.csv sandbox/trees_backup.csv                # Back up the supplied file
+md5sum results/TreeHts.csv > sandbox/TreeHts_before.md5   # Fingerprint of the current result
+sed -i '5s/,34.6166691975668,/,-34.6166691975668,/' data/trees.csv   # Record 4 distance -> negative
+Rscript code/TreeHeight.R
+# Expected error: Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 4
+md5sum -c sandbox/TreeHts_before.md5                      # Expected: results/TreeHts.csv: OK (not overwritten)
+cp sandbox/trees_backup.csv data/trees.csv                # Restore the supplied file
+cmp data/trees.csv sandbox/trees_backup.csv && echo RESTORED
+```
 
 ---
 
-### 2. `get_TreeHeight.R` — Generalised Tree-height Script
+### 2. `get_TreeHeight.R`
 
-**Input:** Exactly one readable CSV file containing `Species`, `Distance.m`, and `Angle.degrees`.
+This script shows how a program that only works on one fixed dataset can be turned into a general tool that safely handles any data in the same format. It reuses the input checks, the `TreeHeight()` function and the four-column output of `TreeHeight.R`. The function is copied rather than sourced, because sourcing `TreeHeight.R` would run that whole script and rewrite `results/TreeHts.csv`.
 
-**Output:** `results/<input-basename>_treeheights.csv` (e.g., `results/trees_treeheights.csv`), preserving row order and adding `height_m`.
+**Input:** One readable CSV file given as a command-line argument, with the columns `Species`, `Distance.m` and `Angle.degrees`.
 
-**Run** from the repository root:
+**Output:** `results/<input file name>_treeheights.csv` (for example `results/trees_treeheights.csv`). The rows keep their original order, and `height_m` is added as the fourth column. The input file is never overwritten.
+
+**Limit:** Only the basename of the input is used, so two inputs with the same basename (for example `data/trees.csv` and `other/trees.csv`) write to the same result file, and the later run replaces the earlier result.
+
+**Run** (from the repository root):
 
 ```bash
 Rscript code/get_TreeHeight.R data/trees.csv
 ```
 
-**Check:** Create a one-row CSV with a distance of 8 m and an angle of 45°. The expected height is 8 m.
+`source()` does not supply a command-line argument, so run this script with `Rscript`.
+
+**Test 1: Normal run with the full dataset.**
+
+```bash
+wc -l results/trees_treeheights.csv     # Expected: 121
+```
+
+**Test 2: An example with a known answer.** At an angle of 45°, the height equals the distance, so 8 m at 45° should give 8 m.
 
 ```bash
 mkdir -p sandbox
 printf 'Species,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/tree_test.csv
-
 Rscript code/get_TreeHeight.R sandbox/tree_test.csv
-
-Rscript -e 'x <- read.csv("results/tree_test_treeheights.csv"); stopifnot(nrow(x) == 1L, isTRUE(all.equal(x$height_m[1], 8)))'
+cat results/tree_test_treeheights.csv   # Expected height_m: 8
 ```
 
-`mkdir -p` creates the test directory if needed, while `printf` generates the test CSV. The script processes the file, and `stopifnot()` verifies that the output contains exactly one record with the expected height.
-
-**Interactive debugging:** Temporarily insert `browser()` immediately before the height calculation.
-
-```r
-browser()
-```
-
-Start R from the repository root:
+**Test 3: Useful errors for bad arguments.**
 
 ```bash
-R --vanilla --args data/trees.csv
+Rscript code/get_TreeHeight.R                                  # Usage message (no argument)
+Rscript code/get_TreeHeight.R data/trees.csv data/trees.csv    # Usage message (extra argument)
+Rscript code/get_TreeHeight.R data/missing.csv                 # Input file does not exist
+printf 'Name,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/bad_header.csv
+Rscript code/get_TreeHeight.R sandbox/bad_header.csv           # CSV must contain exactly: ...
 ```
 
-Then execute:
+**Test 4: An invalid measurement is rejected, and no result is written.** The file keeps the correct header, and only the distance in data row 2 is invalid:
 
-```r
-source("code/get_TreeHeight.R")
+```bash
+printf 'Species,Distance.m,Angle.degrees\nTest,8,45\nTest,-5,30\n' > sandbox/bad_distance.csv
+rm -f results/bad_distance_treeheights.csv
+Rscript code/get_TreeHeight.R sandbox/bad_distance.csv
+# Expected error: Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 2
+test -e results/bad_distance_treeheights.csv || echo "No result written"
 ```
 
-Execution pauses at `browser()`, allowing inspection of the measurements and independent verification of the height calculation. Remove `browser()` after debugging.
+**Test 5: Both scripts give identical results.** The two copies of `TreeHeight()` are checked by comparing the two outputs for `data/trees.csv`:
+
+```bash
+diff results/TreeHts.csv results/trees_treeheights.csv && echo SAME
+```
+
+**Debugging check with `browser()`.** Following the "Paranoid programming" approach, `browser()` was placed temporarily just before the height-calculation line. R was started from the repository root with `R --vanilla --args data/trees.csv`, and the script was run with `source("code/get_TreeHeight.R")`. In browser mode, the distance and angle of record 4 (34.6167 m, 23.3361°) were inspected, and the expected height (14.934 m) was calculated by hand. Pressing `n` ran the calculation line, and `trees$height_m[4]` matched the prediction. Pressing `c` continued the run, and `browser()` was then removed.
 
 ---
 
-### 3. `run_get_TreeHeight.sh` — Bash Automation
+### 3. `run_get_TreeHeight.sh`
 
-**Run / Check** from the repository root:
+**Input:** `data/trees.csv` (passed to `get_TreeHeight.R`).
+
+**Output:** `results/trees_treeheights.csv`.
+
+**Method:** Runs `get_TreeHeight.R` with `Rscript`, using `set -e` to stop on any error.
+
+**Check** (from the repository root):
 
 ```bash
 bash code/run_get_TreeHeight.sh
 test -s results/trees_treeheights.csv && echo PASS
 ```
 
-**Expected:** `PASS` indicates that the output file exists and is non-empty. The script uses `set -e` to stop execution if a command fails.
+---
+
+Tree-height Practicals - revisions and checks after feedback - 2026/11/22
+
+- Renamed the output column to `height_m` as the practical specifies.
+- Kept `TreeHeight()` in both scripts, because each script must run on its own and no extra files are allowed. The two copies are checked by computer: `diff` shows that both outputs are identical (Test 4 above).
+- `TreeHeight()` now only returns the height, and the example call prints it, as in the practical.
+- Tested `TreeHeight.R` and `get_TreeHeight.R` separately: row count, row order, rerun, a checked record, and error messages.
+- Used the same header format at the top of both scripts, and comments to explain decisions.
 
 
 ## 3.2 Cultivation timing and plant species richness at Pound Hill
