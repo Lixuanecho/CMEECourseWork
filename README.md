@@ -130,16 +130,15 @@ The cleaner follows the supplied synthetic survey schema; missing values and mis
 ### AI use
 On October 16, I used ChatGPT as a tutor and gained insights into handling error messages, testing inputs, and the wording of README files.
 
-
 # Assignment 3 — R practicals
-## 3.1 Tree-height Practicals
-## 3.1 Tree-height Practicals
+
+## 3.1 Tree-height practicals
 
 `TreeHeight.R` and `get_TreeHeight.R` use the same formula:
 
 `height_m = Distance.m × tan(Angle.degrees × π / 180)`
 
-|  | `TreeHeight.R` | `get_TreeHeight.R` |
+| | `TreeHeight.R` | `get_TreeHeight.R` |
 | --- | --- | --- |
 | Input | Fixed to `data/trees.csv` | One CSV path given on the command line |
 | Accepted rows | Exactly 120 rows | 1 row or more |
@@ -155,7 +154,7 @@ Both scripts reject input with:
 
 For a bad measurement, the error names the column and the failing data row(s), for example `Invalid data row(s): 4`.
 
-Both scripts replace their output file on rerun, and write it only after all checks pass, so bad input never creates or overwrites a result.
+Both scripts replace their output file on rerun and write it only after all checks pass, so bad input never creates or overwrites a result.
 
 ---
 
@@ -165,7 +164,7 @@ This script defines the function `TreeHeight(degrees, distance)`, which converts
 
 **Input:** `data/trees.csv` (kept unchanged)
 
-**Output:** `results/TreeHts.csv`. The three input columns are kept in their original order, and `height_m` is added as the fourth column.
+**Output:** `results/TreeHts.csv`. The three input columns keep their original order, and `height_m` is added as the fourth column.
 
 **Run** (from the repository root):
 
@@ -179,35 +178,35 @@ or, in an R session started at the repository root:
 source("code/TreeHeight.R")
 ```
 
-How to check:
+**Tests**
 
-Test 1: Header and row count.
+**Test 1: Header and row count.**
 
 ```bash
 wc -l results/TreeHts.csv          # Expected: 121 (header + 120 records)
 head -n 1 results/TreeHts.csv      # Expected: "Species","Distance.m","Angle.degrees","height_m"
 ```
 
-Test 2: The script prints the result of the example call `print(TreeHeight(37, 40))`.
+**Test 2: Example call.** The script prints the result of `print(TreeHeight(37, 40))`:
 
-```
+```text
 [1] 30.14216
 ```
 
-Test 3: Rows are in the same order as the input. The first three output columns must equal the input table.
+**Test 3: Row order.** The first three output columns must equal the input table:
 
 ```bash
 Rscript -e 'a <- read.csv("data/trees.csv"); b <- read.csv("results/TreeHts.csv"); stopifnot(isTRUE(all.equal(a, b[1:3]))); cat("PASS\n")'
 ```
 
-Test 4: Rerun replaces the result rather than adding rows.
+**Test 4: Rerun.** A rerun replaces the result rather than adding rows:
 
 ```bash
 Rscript code/TreeHeight.R
-wc -l results/TreeHts.csv          # Still 121
+wc -l results/TreeHts.csv          # Expected: still 121
 ```
 
-Test 5: Check one record independently. The fourth record was calculated on a scientific calculator set to degree mode (DEG). The calculator takes the angle in degrees directly, so this check does not reuse the script's degree-to-radian step. The result was then compared with the script's output:
+**Test 5: One record checked independently.** Record 4 was calculated on a scientific calculator in degree mode (DEG). The calculator takes the angle in degrees directly, so this check does not reuse the script's degree-to-radian step:
 
 ```bash
 sed -n 5p results/TreeHts.csv      # Line 5 = header + record 4
@@ -216,12 +215,12 @@ sed -n 5p results/TreeHts.csv      # Line 5 = header + record 4
 | Step | Value | Unit |
 | --- | --- | --- |
 | Species | Fraxinus excelsior | – |
-| Distance.m (input) | 34.6166691975668 | m |
-| Angle.degrees (input) | 23.336126555223 | ° |
-| Calculator (DEG mode): tan(23.336126555223) | 0.431416 | – |
+| `Distance.m` (input) | 34.6166691975668 | m |
+| `Angle.degrees` (input) | 23.336126555223 | ° |
+| Calculator (DEG): tan(23.336126555223) | 0.431416 | – |
 | Calculator: 34.6166691975668 × 0.431416 | 14.934 | m |
 | Script output `height_m` | 14.934175 | m |
-| Agreement | Difference < 0.001 m | m |
+| Agreement | Difference < 0.001 | m |
 
 Why the value is plausible:
 
@@ -229,7 +228,7 @@ Why the value is plausible:
 - tan(23.3°) is about 0.43, so the height should be a little under half the distance.
 - A height of about 15 m is biologically plausible for an ash tree.
 
-Test 6: An invalid measurement is rejected, and the result is not overwritten. `TreeHeight.R` only reads `data/trees.csv`, so this test temporarily changes one value in that file and then restores it. Only one measurement is changed, and the columns and the 120 rows are kept, so only the distance check can fail.
+**Test 6: Invalid measurement.** The script rejects it and does not overwrite the result. `TreeHeight.R` only reads `data/trees.csv`, so this test changes one value in that file and then restores it. The columns and the 120 rows are kept, so only the distance check can fail:
 
 ```bash
 mkdir -p sandbox
@@ -247,13 +246,11 @@ cmp data/trees.csv sandbox/trees_backup.csv && echo RESTORED
 
 ### 2. `get_TreeHeight.R`
 
-This script shows how a program that only works on one fixed dataset can be turned into a general tool that safely handles any data in the same format. It reuses the input checks, the `TreeHeight()` function and the four-column output of `TreeHeight.R`. The function is copied rather than sourced, because sourcing `TreeHeight.R` would run that whole script and rewrite `results/TreeHts.csv`.
+This script turns the fixed-dataset program into a general tool that safely handles any data in the same format. It reuses the input checks, the `TreeHeight()` function and the four-column output of `TreeHeight.R`. The function is copied rather than sourced, because sourcing `TreeHeight.R` would run that whole script and rewrite `results/TreeHts.csv`.
 
 **Input:** One readable CSV file given as a command-line argument, with the columns `Species`, `Distance.m` and `Angle.degrees`.
 
 **Output:** `results/<input file name>_treeheights.csv` (for example `results/trees_treeheights.csv`). The rows keep their original order, and `height_m` is added as the fourth column. The input file is never overwritten.
-
-**Limit:** Only the basename of the input is used, so two inputs with the same basename (for example `data/trees.csv` and `other/trees.csv`) write to the same result file, and the later run replaces the earlier result.
 
 **Run** (from the repository root):
 
@@ -261,7 +258,7 @@ This script shows how a program that only works on one fixed dataset can be turn
 Rscript code/get_TreeHeight.R data/trees.csv
 ```
 
-`source()` does not supply a command-line argument, so run this script with `Rscript`.
+**Tests**
 
 **Test 1: Normal run with the full dataset.**
 
@@ -269,26 +266,26 @@ Rscript code/get_TreeHeight.R data/trees.csv
 wc -l results/trees_treeheights.csv     # Expected: 121
 ```
 
-**Test 2: An example with a known answer.** At an angle of 45°, the height equals the distance, so 8 m at 45° should give 8 m.
+**Test 2: Known answer.** At 45°, the height equals the distance, so 8 m at 45° should give 8 m:
 
 ```bash
 mkdir -p sandbox
 printf 'Species,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/tree_test.csv
 Rscript code/get_TreeHeight.R sandbox/tree_test.csv
-cat results/tree_test_treeheights.csv   # Expected height_m: 8
+cat results/tree_test_treeheights.csv   # Expected: height_m = 8
 ```
 
-**Test 3: Useful errors for bad arguments.**
+**Test 3: Bad arguments.** Each run stops with a useful error:
 
 ```bash
-Rscript code/get_TreeHeight.R                                  # Usage message (no argument)
-Rscript code/get_TreeHeight.R data/trees.csv data/trees.csv    # Usage message (extra argument)
-Rscript code/get_TreeHeight.R data/missing.csv                 # Input file does not exist
+Rscript code/get_TreeHeight.R                                  # Expected: usage message (no argument)
+Rscript code/get_TreeHeight.R data/trees.csv data/trees.csv    # Expected: usage message (extra argument)
+Rscript code/get_TreeHeight.R data/missing.csv                 # Expected: input file does not exist
 printf 'Name,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/bad_header.csv
-Rscript code/get_TreeHeight.R sandbox/bad_header.csv           # CSV must contain exactly: ...
+Rscript code/get_TreeHeight.R sandbox/bad_header.csv           # Expected: CSV must contain exactly: ...
 ```
 
-**Test 4: An invalid measurement is rejected, and no result is written.** The file keeps the correct header, and only the distance in data row 2 is invalid:
+**Test 4: Invalid measurement.** The script rejects it and writes no result. The header is correct, and only the distance in data row 2 is invalid:
 
 ```bash
 printf 'Species,Distance.m,Angle.degrees\nTest,8,45\nTest,-5,30\n' > sandbox/bad_distance.csv
@@ -298,83 +295,123 @@ Rscript code/get_TreeHeight.R sandbox/bad_distance.csv
 test -e results/bad_distance_treeheights.csv || echo "No result written"
 ```
 
-**Test 5: Both scripts give identical results.** The two copies of `TreeHeight()` are checked by comparing the two outputs for `data/trees.csv`:
+**Test 5: Both scripts agree.** The two copies of `TreeHeight()` are checked by comparing their outputs for `data/trees.csv`:
 
 ```bash
 diff results/TreeHts.csv results/trees_treeheights.csv && echo SAME
 ```
 
-**Debugging check with `browser()`.** Following the "Paranoid programming" approach, `browser()` was placed temporarily just before the height-calculation line. R was started from the repository root with `R --vanilla --args data/trees.csv`, and the script was run with `source("code/get_TreeHeight.R")`. In browser mode, the distance and angle of record 4 (34.6167 m, 23.3361°) were inspected, and the expected height (14.934 m) was calculated by hand. Pressing `n` ran the calculation line, and `trees$height_m[4]` matched the prediction. Pressing `c` continued the run, and `browser()` was then removed.
+**Debugging with `browser()`.** Following the "Paranoid programming" approach, `browser()` was placed temporarily just before the height-calculation line. R was started from the repository root with `R --vanilla --args data/trees.csv`, and the script was run with `source("code/get_TreeHeight.R")`. In browser mode, the distance and angle of record 4 (34.6167 m, 23.3361°) were inspected, and the expected height (14.934 m) was calculated by hand. Pressing `n` ran the calculation line, and `trees$height_m[4]` matched the prediction. Pressing `c` continued the run, and `browser()` was then removed.
 
 ---
 
 ### 3. `run_get_TreeHeight.sh`
 
-**Input:** `data/trees.csv` (passed to `get_TreeHeight.R`).
+This script runs `get_TreeHeight.R` with `Rscript`, using `set -e` to stop on any error.
 
-**Output:** `results/trees_treeheights.csv`.
+**Input:** `data/trees.csv` (passed to `get_TreeHeight.R`)
 
-**Method:** Runs `get_TreeHeight.R` with `Rscript`, using `set -e` to stop on any error.
+**Output:** `results/trees_treeheights.csv`
 
-**Check** (from the repository root):
+**Run** (from the repository root):
 
 ```bash
 bash code/run_get_TreeHeight.sh
-test -s results/trees_treeheights.csv && echo PASS
+```
+
+**Tests**
+
+**Test 1: Non-empty result.**
+
+```bash
+test -s results/trees_treeheights.csv && echo PASS   # Expected: PASS
 ```
 
 ---
 
-Tree-height Practicals - revisions and checks after feedback - 2026/11/22
+### Revisions and checks after feedback — 2026/11/22
 
-- Renamed the output column to `height_m` as the practical specifies.
-- Kept `TreeHeight()` in both scripts, because each script must run on its own and no extra files are allowed. The two copies are checked by computer: `diff` shows that both outputs are identical (Test 4 above).
-- `TreeHeight()` now only returns the height, and the example call prints it, as in the practical.
-- Tested `TreeHeight.R` and `get_TreeHeight.R` separately: row count, row order, rerun, a checked record, and error messages.
-- Used the same header format at the top of both scripts, and comments to explain decisions.
+- Renamed the output column to `height_m`, as the practical specifies.
+- Kept `TreeHeight()` in both scripts, because each script must run on its own and no extra files are allowed. `diff` confirms that both outputs are identical (Test 5 of `get_TreeHeight.R`).
+- Changed `TreeHeight()` to return the height only; the example call prints it, as in the practical.
+- Tested `TreeHeight.R` and `get_TreeHeight.R` separately: row count, row order, rerun, an independently checked record and error messages.
+- Used the same header format at the top of both scripts, and added comments to explain decisions.
 
+---
 
 ## 3.2 Cultivation timing and plant species richness at Pound Hill
 
+> **Research question:** How does mean plant species richness per quadrat vary among the March, May and October cultivation treatments?
 
-**Research question:** How does mean plant species richness per quadrat vary among the March, May and October cultivation treatments?
+### `pound_hill_analysis.R`
 
-**Run** from the repository root:
+This script calculates mean species richness for each plot and compares the three cultivation treatments. It uses base R only.
 
-```bash
-Rscript code/pound_hill_analysis.R
-```
+**Input:** `data/pound_hill_data.csv` and `data/pound_hill_meta_data.csv`
 
-**Inputs:** `data/pound_hill_data.csv` and `data/pound_hill_meta_data.csv`.
+**Output:** Both files are recreated on every successful run.
 
-**Outputs:** 
-
-| Output file | Description |
+| Output file | Contents |
 | --- | --- |
 | `results/pound_hill_plot_richness.csv` | Mean species richness for each of the 12 plots (`Cultivation`, `Block`, `Plot`, `MeanRichness`). |
-| `results/pound_hill_plot_richness.pdf` | Plot-level richness across March, May and October treatments, showing individual plots and treatment means. |
-| `results/pound_hill_plot_abundance.csv` | Mean total abundance per quadrat, aggregated to the plot level. |
-| `results/pound_hill_plot_abundance.pdf` | Plot-level abundance across cultivation treatments. |
+| `results/pound_hill_plot_richness.pdf` | Plot-level richness for March, May and October: one labelled point per plot and a line for each treatment mean. |
 
-**Method:** Species counts are reshaped to long format with `tidyr::pivot_longer()`. Metadata-defined blank counts represent observed absences and are converted to zero; all counts must be numeric, non-missing and non-negative. Each quadrat is uniquely identified by `Cultivation`, `Block`, `Plot` and `Quadrat`. Richness (number of species with `Count > 0`) and abundance (sum of individual counts) are calculated per quadrat, then averaged within plots. Because plots contain unequal numbers of quadrats (3–6), treatment comparisons use plot-level means to give each of the four replicate plots per treatment equal weight.
-
-**Check:** The script checks count validity and reports 41 species, 59 quadrats and 12 plots; the long-format data contain 2,419 rows (59 × 41) and six columns. Verify that the richness output contains 12 plots, with four per treatment:
+**Run** (from the repository root):
 
 ```bash
-Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); stopifnot(nrow(x) == 12L, all(table(x$Cultivation) == 4L))'
-```
-
-To verify reproducibility, save the output, rerun the analysis and compare the files:
-
-```bash
-cp results/pound_hill_plot_richness.csv /tmp/pound_hill_first.csv
 Rscript code/pound_hill_analysis.R
-cmp /tmp/pound_hill_first.csv results/pound_hill_plot_richness.csv
 ```
 
-A successful `stopifnot()` check and identical CSV files produce no output. 
+**Method**
+
+1. **Reshape.** The species table is transposed (one column per quadrat), so it is transposed in base R and reshaped to long format (one row per species × quadrat) with `rep()`.
+2. **Blank counts.** The metadata defines blank counts as observed absences, so they are converted to zero. All counts must then be numeric, finite, non-negative integers.
+3. **Sampling unit.** Each quadrat is identified by `Cultivation`, `Block`, `Plot` and `Quadrat`.
+4. **Richness.** The number of species with `Count > 0` is calculated per quadrat and then averaged within each plot.
+5. **Replicates.** Plots hold unequal numbers of quadrats (3–6), so treatments are compared using plot-level means. This gives each of the four replicate plots per treatment equal weight.
+
+**Tests**
+
+**Test 1: Built-in validation.** The script stops with an error if any check fails. A successful run reports 41 species, 59 quadrats, 2,419 long-format rows (59 × 41) and 12 plots, one per treatment in each block.
+
+**Test 2: Figure matches the CSV (built in).** After writing the outputs, the script re-reads the saved CSV and stops if any plotted point or treatment-mean line differs from it. A successful run prints:
+
+```text
+Figure check passed: 12 points and 3 treatment means match the CSV.
+  march    mean = 7.81; plot range = 6.33-10.00
+  may      mean = 9.65; plot range = 7.40-11.60
+  october  mean = 7.61; plot range = 6.40-10.25
+```
+
+**Test 3: Independent check of the CSV.** The same summary is recalculated outside the script:
+
+```bash
+Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); stopifnot(nrow(x) == 12L, all(table(x$Cultivation) == 4L)); print(aggregate(MeanRichness ~ Cultivation, x, mean)); print(aggregate(MeanRichness ~ Cultivation, x, range))'
+```
+
+| Treatment | Mean | Range of plot means | Plots in figure |
+| --- | --- | --- | --- |
+| March | 7.81 | 6.33–10.00 | P3, P5, P7, P10 |
+| May | 9.65 | 7.40–11.60 | P2, P4, P9, P12 |
+| October | 7.61 | 6.40–10.25 | P1, P6, P8, P11 |
+
+Opening `results/pound_hill_plot_richness.pdf` confirmed that all 12 plot labels and their values agree with the CSV, and that the three lines lie at 7.81, 9.65 and 7.61.
 
 **Interpretation:** See the comments at the end of `code/pound_hill_analysis.R`.
 
+---
+
+### Revisions and checks after feedback — 2026/11/25
+
+- Removed the two abundance outputs from the output table; the script writes only the richness CSV and PDF.
+- Replaced the `tidyr::pivot_longer()` description with the base-R method the script uses (`t()` and `rep()`).
+- Added a figure check to the script. It re-reads the saved CSV and stops if the plotted points or treatment means differ from it. It was tested by deliberately altering the CSV, the mean line and the plotted points; each change stopped the script with an error.
+- Recorded the treatment means and ranges from the CSV and compared them with the figure (Test 3).
+- Added comments to the script to explain key decisions.
+
 ### AI use
-Between October 20 and 23, I used ChatGPT to understand errors and concepts and to debug my draft.
+
+| Date | Tool | What I used it for | How I checked the result |
+| --- | --- | --- | --- |
+| 20–23 Oct 2026 | ChatGPT | Explaining R error messages and concepts, including why plots, not quadrats, are the replicates (pseudoreplication). | Checked one plot's mean richness by hand. |
+| 25 Nov 2026 | Claude | Aligning README section 3.2 with the script after feedback and adding the figure check to `pound_hill_analysis.R`. | Reran the script and compared the printed means with the CSV and the PDF. |

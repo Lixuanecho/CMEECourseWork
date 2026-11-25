@@ -1,19 +1,32 @@
 #!/usr/bin/env Rscript
-# Pound Hill: cultivation timing and plot-level mean species richness.
-# Run from the project root: Rscript code/pound_hill_analysis.R
+# Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
+# Script: pound_hill_analysis.R
+# Des: Calculate mean species richness per quadrat for each Pound Hill plot
+#      and compare plots across the March, May and October cultivation treatments.
+# Usage: Rscript code/pound_hill_analysis.R  (run from the repository root)
+# Inputs: data/pound_hill_data.csv and data/pound_hill_meta_data.csv
+# Outputs: results/pound_hill_plot_richness.csv and results/pound_hill_plot_richness.pdf
+# Date: Nov 2026
+
+# Treatment order for validation, sorting and the figure.
+months <- c("march", "may", "october")
 
 assert <- function(condition, message) {
   if (!isTRUE(condition)) stop(message, call. = FALSE)
 }
 
+# Draws the figure and returns the values it plotted, so step 7 can
+# compare them with the saved CSV.
 plot_richness_figure <- function(plot_means, path) {
-  months <- c("march", "may", "october")
   colours <- c("#477FA8", "#2C957F", "#D28A45")
+  # Offset by block so the four plots of a treatment do not overlap.
   block_offsets <- c(a = -0.18, b = -0.06, c = 0.06, d = 0.18)
+  # Padding leaves room for the plot labels above the points.
   y_limits <- range(plot_means$MeanRichness) + c(-1.6, 1.8)
 
   grDevices::pdf(path, width = 8, height = 5.5, useDingbats = FALSE)
   old_par <- graphics::par(mar = c(6.2, 5.4, 3.4, 1.1), family = "sans")
+  # Close the PDF even if plotting fails, so no device is left open.
   on.exit({
     graphics::par(old_par)
     grDevices::dev.off()
@@ -28,6 +41,8 @@ plot_richness_figure <- function(plot_means, path) {
   graphics::axis(2, at = pretty(y_limits), las = 1, cex.axis = 0.95)
   graphics::box(bty = "l", col = "#9299A2")
 
+  drawn_points <- list()
+  drawn_means <- numeric(0)
   for (i in seq_along(months)) {
     current <- plot_means[plot_means$Cultivation == months[i], ]
     x <- i + unname(block_offsets[as.character(current$Block)])
@@ -41,6 +56,13 @@ plot_richness_figure <- function(plot_means, path) {
     graphics::text(x, current$MeanRichness,
                    labels = paste0("P", as.character(current$Plot)),
                    pos = 3, offset = 0.45, cex = 0.73, col = "#303840")
+
+    # Record exactly what was drawn for the figure check.
+    drawn_points[[i]] <- data.frame(Cultivation = months[i],
+                                    Plot = as.character(current$Plot),
+                                    y = current$MeanRichness,
+                                    stringsAsFactors = FALSE)
+    drawn_means[months[i]] <- treatment_mean
   }
 
   graphics::title(main = "Pound Hill: richness by cultivation timing",
@@ -53,6 +75,8 @@ plot_richness_figure <- function(plot_means, path) {
     "Points = individual plots (labelled by plot ID); lines = treatment means (4 plots each)",
     side = 1, line = 4.65, cex = 0.78, col = "#57616D"
   )
+
+  invisible(list(points = do.call(rbind, drawn_points), means = drawn_means))
 }
 
 # 1. Import the supplied files. The species table is TRANSPOSED:
@@ -62,8 +86,11 @@ metadata_path <- "data/pound_hill_meta_data.csv"
 assert(file.exists(data_path), paste("Input file not found:", data_path))
 assert(file.exists(metadata_path), paste("Metadata file not found:", metadata_path))
 
+# Read as text: each column mixes labels and counts. na.strings keeps
+# blanks as "" so only the metadata rule (step 2) decides what they mean.
 raw <- utils::read.csv(data_path, header = FALSE, colClasses = "character",
                        na.strings = character(), check.names = FALSE)
+# The metadata file is semicolon-separated.
 metadata <- utils::read.csv(metadata_path, sep = ";", header = TRUE,
                             strip.white = TRUE, stringsAsFactors = FALSE,
                             check.names = FALSE)
@@ -73,6 +100,7 @@ assert(identical(names(metadata), c("FieldName", "Description")),
 metadata$FieldName <- trimws(metadata$FieldName)
 metadata$Description <- trimws(metadata$Description)
 
+# Print the imported structure so it can be inspected before analysis.
 cat("Raw dimensions:", nrow(raw), "rows x", ncol(raw), "columns\n")
 cat("Raw column types:", paste(unique(vapply(raw, typeof, character(1))),
                                   collapse = ", "), "\n")
@@ -98,10 +126,12 @@ assert(nrow(raw) > length(required) && ncol(raw) > 1L,
        "The data must contain quadrats and species rows.")
 assert(identical(fields[seq_along(required)], required),
        "The first four data rows must be Cultivation, Block, Plot, Quadrat.")
+# Unique labels, so two species rows can never be merged by mistake.
 assert(!anyNA(fields) && all(nzchar(fields)) && !anyDuplicated(fields),
        "Field/species labels must be non-empty and unique after trimming.")
 
 species <- fields[-seq_along(required)]
+# Transpose so each row is one quadrat (the sampling unit).
 quadrat_wide <- t(as.matrix(raw[, -1L, drop = FALSE]))
 colnames(quadrat_wide) <- fields
 quadrat_info <- data.frame(
@@ -111,8 +141,9 @@ quadrat_info <- data.frame(
   Quadrat     = trimws(quadrat_wide[, "Quadrat"]),
   stringsAsFactors = FALSE
 )
+# Reject unexpected IDs rather than silently creating extra groups.
 assert(all(nzchar(as.matrix(quadrat_info))), "Missing quadrat identifiers.")
-assert(all(quadrat_info$Cultivation %in% c("march", "may", "october")),
+assert(all(quadrat_info$Cultivation %in% months),
        "Unexpected cultivation treatment.")
 assert(all(quadrat_info$Block %in% letters[1:4]), "Unexpected block ID.")
 assert(all(grepl("^[0-9]+$", quadrat_info$Plot)), "Invalid plot ID.")
@@ -123,6 +154,7 @@ count_text <- quadrat_wide[, species, drop = FALSE]
 count_text[] <- trimws(count_text)
 count_text[count_text == ""] <- "0"  # Metadata-authorised substitution.
 count_values <- suppressWarnings(as.numeric(count_text))
+# Counts are numbers of individuals: whole numbers, never negative.
 assert(!anyNA(count_values), "Species counts contain non-numeric values.")
 assert(all(is.finite(count_values) & count_values >= 0 &
              count_values == floor(count_values)),
@@ -132,6 +164,8 @@ count_matrix <- matrix(count_values, nrow = nrow(count_text),
 
 n_quadrats <- nrow(count_matrix)
 n_species <- ncol(count_matrix)
+# as.vector() reads the matrix column by column (all quadrats of species 1,
+# then species 2 ...), so quadrat IDs repeat with `times`, species with `each`.
 long_counts <- data.frame(
   Cultivation = rep(quadrat_info$Cultivation, times = n_species),
   Block       = rep(quadrat_info$Block, times = n_species),
@@ -173,7 +207,6 @@ plot_richness <- stats::aggregate(
   data = quadrat_richness, FUN = mean
 )
 names(plot_richness)[names(plot_richness) == "Richness"] <- "MeanRichness"
-months <- c("march", "may", "october")
 plot_richness <- plot_richness[order(
   match(plot_richness$Cultivation, months),
   plot_richness$Block, as.integer(as.character(plot_richness$Plot))
@@ -187,6 +220,7 @@ assert(nrow(plot_richness) == 12L &&
          all(block_design == 1L),
        "Expected 12 unique plots: one per cultivation in each block.")
 
+# Report the unequal quadrat numbers that justify averaging within plots.
 n_per_plot <- stats::aggregate(
   Quadrat ~ Cultivation + Block + Plot, data = quadrat_richness,
   FUN = length
@@ -201,8 +235,31 @@ dir.create("results", showWarnings = FALSE, recursive = TRUE)
 csv_path <- "results/pound_hill_plot_richness.csv"
 pdf_path <- "results/pound_hill_plot_richness.pdf"
 utils::write.csv(plot_richness, csv_path, row.names = FALSE)
-plot_richness_figure(plot_richness, pdf_path)
+drawn <- plot_richness_figure(plot_richness, pdf_path)
 cat("Wrote:", csv_path, "and", pdf_path, "\n")
+
+# 7. Figure check: re-read the saved CSV (the file a reader opens) and stop
+#    if any plotted point or treatment mean differs from it. It runs after
+#    writing because it tests the written file, not the in-memory table.
+saved <- utils::read.csv(csv_path, stringsAsFactors = FALSE)
+row_in_csv <- match(drawn$points$Plot, as.character(saved$Plot))
+assert(nrow(saved) == 12L && nrow(drawn$points) == 12L &&
+         !anyNA(row_in_csv) && !anyDuplicated(row_in_csv) &&
+         identical(drawn$points$Cultivation, saved$Cultivation[row_in_csv]) &&
+         isTRUE(all.equal(drawn$points$y, saved$MeanRichness[row_in_csv])),
+       "Plotted points do not match the saved CSV.")
+csv_means <- tapply(saved$MeanRichness, saved$Cultivation, mean)[months]
+# as.numeric(): tapply() returns a 1-D array, which all.equal() treats as a
+# different type from a plain vector.
+assert(isTRUE(all.equal(as.numeric(csv_means), as.numeric(drawn$means[months]))),
+       "Treatment-mean lines do not match the saved CSV.")
+
+cat("Figure check passed: 12 points and 3 treatment means match the CSV.\n")
+for (m in months) {
+  r <- range(saved$MeanRichness[saved$Cultivation == m])
+  cat(sprintf("  %-8s mean = %.2f; plot range = %.2f-%.2f\n",
+              m, csv_means[[m]], r[1], r[2]))
+}
 
 # Interpretation
 # May cultivation had the highest mean plot-level species richness
