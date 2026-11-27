@@ -123,6 +123,28 @@ class TestValidation(unittest.TestCase):
                 with self.subTest(field=field, value=value):
                     self.check_reasons([f"invalid {field}"], **{field: value})
 
+    def test_number_text_must_be_plain_ascii(self):
+        """float() accepts these, but they are not ordinary number text."""
+        # 1_0 (digit separator), Arabic-Indic and full-width digits, a unit,
+        # hexadecimal, and an exponent that overflows to inf
+        for field in ("distance_m", "angle_degrees"):
+            for value in ("1_0", "١٢", "１２", "12 m", "0x10", "1e999"):
+                with self.subTest(field=field, value=value):
+                    self.check_reasons([f"invalid {field}"], **{field: value})
+
+    def test_small_numbers_are_written_as_decimal_text(self):
+        """str(float()) would give '1e-07'; the metadata asks for decimal text."""
+        for value in ("0.0000001", "1e-7", "1E-7"):
+            with self.subTest(value=value):
+                cleaned, reasons = trees.validate_record(
+                    make_record(distance_m=value, angle_degrees="0.00001"), set())
+                self.assertEqual(reasons, [])
+                self.assertEqual(cleaned["distance_m"], "0.0000001")
+                self.assertEqual(cleaned["angle_degrees"], "0.00001")
+        # Ordinary values keep the same text as before the change
+        cleaned, _ = trees.validate_record(make_record(distance_m="1e2"), set())
+        self.assertEqual(cleaned["distance_m"], "100.0")
+
     def test_combined_reasons_in_metadata_order(self):
         self.check_reasons([
             "invalid record_id", "invalid location", "invalid genus",

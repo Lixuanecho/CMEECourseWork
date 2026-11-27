@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import math
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Iterable
 
@@ -48,6 +49,13 @@ SPECIES_LOOKUP = {
 # other Unicode digits).
 RECORD_ID_PATTERN = re.compile(r"ST[0-9]{3}")
 
+# Plain ASCII number text: an optional sign, digits with an optional decimal
+# part, and an optional exponent (12, 12.5, .5, -2, 1e2). float() on its own
+# would also accept "1_0", non-ASCII digits and words such as "nan" and "inf".
+NUMBER_PATTERN = re.compile(
+    r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?"
+)
+
 
 def load_records(path: Path = INPUT_PATH) -> list[tuple[int, dict[str, str]]]:
     """Read the survey, check its column names and number its records.
@@ -66,6 +74,20 @@ def load_records(path: Path = INPUT_PATH) -> list[tuple[int, dict[str, str]]]:
             )
         # reader.line_num is read after each row, so it is that row's line
         return [(reader.line_num, row) for row in reader]
+
+
+def decimal_text(number: float) -> str:
+    """Write a number as decimal text, never in exponent notation.
+
+    repr() gives the shortest text that reads back as the same number, but it
+    switches to exponent notation for small values (1e-07), which is not the
+    "valid decimal text" the metadata asks for. Decimal keeps that exact
+    value, and the "f" format writes it as 0.0000001.
+    """
+    text = repr(number)
+    if "e" in text or "E" in text:
+        text = format(Decimal(text), "f")
+    return text
 
 
 def validate_record(
@@ -133,18 +155,18 @@ def validate_record(
         if not value:
             reasons.append(f"missing {field}")
             continue
-        try:
-            number = float(value)
-        except ValueError:
+        if NUMBER_PATTERN.fullmatch(value) is None:
             reasons.append(f"invalid {field}")
             continue
+        number = float(value)
+        # A huge exponent such as 1e999 overflows to inf, which is not finite.
         if not math.isfinite(number):
             reasons.append(f"invalid {field}")
             continue
         if number <= 0 or (number > upper_bound if include_upper else number >= upper_bound):
             reasons.append(f"{field} out of range")
             continue
-        clean[field] = str(number)
+        clean[field] = decimal_text(number)
 
     if reasons:
         return None, reasons
