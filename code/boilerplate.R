@@ -2,7 +2,7 @@
 # Script: boilerplate.R
 # Des: Boilerplate template for R scripts used in coursework and projects
 # Usage: Rscript code/boilerplate.R
-# Date: Nov, 2026
+# Date: Nov 2026
 # Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
 
 # A boilerplate R script

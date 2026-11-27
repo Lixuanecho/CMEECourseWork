@@ -1,8 +1,9 @@
 #!/bin/bash
 # Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
 # Script: CheckLabel.sh
-# Desc: Check the label of a tree
-# Usage: bash code/CheckLabel.sh
+# Desc: Accept exactly one tree label, oak or pine (case-sensitive).
+#       Exit status: 0 = valid label, 1 = unknown label, 2 = wrong number of arguments.
+# Usage: bash code/CheckLabel.sh oak|pine   (e.g. bash code/CheckLabel.sh oak)
 # Date: Nov 2026
 
 if [[ $# -ne 1 ]]; then
