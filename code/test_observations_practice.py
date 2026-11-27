@@ -8,7 +8,11 @@ Usage: python3 code/test_observations_practice.py
 Date: Nov 2026
 """
 
+import os
+import tempfile
+
 from observations_practice import load_observations, parse_count, summarise_site
+
 
 
 # Checks for parse_count
@@ -22,7 +26,11 @@ assert parse_count("0") == 0
 assert parse_count("") is None
 
 # Negative numbers, words and non-text input all have to raise ValueError
-for bad_count in ["-1", "many", 2]:
+# The second line follows the rule shared with observations_practice.R:
+# int() accepts a sign, spaces, leading zeros, "_" and non-ASCII digits,
+# but these are not plain non-negative integer text, so they are rejected too
+for bad_count in ["-1", "many", 2,
+                  "+2", " 2", "2 ", "02", "1_000", "2.0", "٢"]:
     try:
         parse_count(bad_count)
     except ValueError:
@@ -110,6 +118,36 @@ expect_summary_error(None)
 # Query site is empty or not text
 expect_summary_error(rows, "")
 expect_summary_error(rows, 2)
+# Site or date made only of spaces (also rejected by the R version)
+expect_summary_error([{"site": " ", "date": "2026-10-01", "count": "2"}])
+expect_summary_error([{"site": "A", "date": "  ", "count": "2"}])
+# "2" and "02" for the same site and date: "02" is not valid count text,
+# so it is an error rather than a second observation (total 4)
+expect_summary_error([
+    {"site": "A", "date": "2026-10-01", "count": "2"},
+    {"site": "A", "date": "2026-10-01", "count": "02"},
+])
+
+
+# Checks for load_observations
+# A missing file and a file with the wrong columns stop with a clear error
+try:
+    load_observations("data/no_such_file.csv")
+except FileNotFoundError as error:
+    assert "Input file not found" in str(error)
+else:
+    raise AssertionError("A missing file was accepted")
+
+with tempfile.TemporaryDirectory() as folder:
+    wrong_columns = os.path.join(folder, "wrong_columns.csv")
+    with open(wrong_columns, "w", encoding="utf-8") as stream:
+        stream.write("site,count,date\nA,2,2026-10-01\n")
+    try:
+        load_observations(wrong_columns)
+    except ValueError as error:
+        assert "expected columns" in str(error)
+    else:
+        raise AssertionError("A file with the wrong columns was accepted")
 
 
 # The input should stay the same after the call
