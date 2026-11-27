@@ -11,17 +11,38 @@
 # Required packages: dplyr, tidyr
 # Install them once in an ordinary R session, not inside this script:
 #   install.packages(c("dplyr", "tidyr"))
+# Stop with a clear message if a package or an input file is missing,
+# instead of R's "there is no package" or "cannot open the connection" error.
+for (package in c("dplyr", "tidyr")) {
+  if (!requireNamespace(package, quietly = TRUE)) {
+    stop("Package '", package, "' is not installed. Install it once with ",
+         "install.packages(c(\"dplyr\", \"tidyr\")).", call. = FALSE)
+  }
+}
+
+data_path <- "data/pound_hill_data.csv"
+metadata_path <- "data/pound_hill_meta_data.csv"
+for (path in c(data_path, metadata_path)) {
+  if (!file.exists(path)) {
+    stop("Input file not found: ", path,
+         " (run this script from the project root)", call. = FALSE)
+  }
+}
+
+# Attach the packages only after the checks. library(dplyr) prints a message
+# on standard error that some functions (filter, lag, ...) are masked; this is
+# expected and not an error.
 library(dplyr)
 library(tidyr)
 
 # Load the data ----------------------------------------------------------
 # The first rows describe the sampling design, so do not use one as a header.
 # Read as a matrix so that everything stays as character for now.
-MyData <- as.matrix(read.csv("data/pound_hill_data.csv", header = FALSE))
+MyData <- as.matrix(read.csv(data_path, header = FALSE))
 
 # The metadata file has a header and uses semicolons as separators
 # (the description field contains commas).
-MyMetaData <- read.csv("data/pound_hill_meta_data.csv", header = TRUE, sep = ";")
+MyMetaData <- read.csv(metadata_path, header = TRUE, sep = ";")
 
 # Inspect the data -------------------------------------------------------
 head(MyData)
