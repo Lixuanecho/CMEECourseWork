@@ -2,7 +2,8 @@
 # Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
 # Script: pound_hill_analysis.R
 # Des: Calculate mean species richness per quadrat for each Pound Hill plot
-#      and compare plots across the March, May and October cultivation treatments.
+#      and compare plots across the March, May and October cultivation treatments,
+#      with a blocked analysis of the 12 plot means (treatment + block).
 # Usage: Rscript code/pound_hill_analysis.R  (run from the repository root)
 # Inputs: data/pound_hill_data.csv and data/pound_hill_meta_data.csv
 # Outputs: results/pound_hill_plot_richness.csv and results/pound_hill_plot_richness.pdf
@@ -41,6 +42,21 @@ plot_richness_figure <- function(plot_means, path) {
   graphics::axis(2, at = pretty(y_limits), las = 1, cex.axis = 0.95)
   graphics::box(bty = "l", col = "#9299A2")
 
+  # Thin grey lines join the three plots of each block (line type = block),
+  # drawn first so the points sit on top. A line that peaks at May in every
+  # block shows the within-block pattern that the blocked analysis tests.
+  block_lty <- c(a = 1, b = 2, c = 3, d = 4)
+  for (b in names(block_offsets)) {
+    in_block <- plot_means[plot_means$Block == b, ]
+    in_block <- in_block[match(months, in_block$Cultivation), ]
+    graphics::lines(seq_along(months) + block_offsets[[b]],
+                    in_block$MeanRichness, col = "#A3AAB3", lwd = 1.1,
+                    lty = block_lty[[b]])
+  }
+  graphics::legend("topright", legend = paste("Block", names(block_lty)),
+                   lty = block_lty, col = "#A3AAB3", lwd = 1.1, bty = "n",
+                   cex = 0.75, text.col = "#57616D")
+
   drawn_points <- list()
   drawn_means <- numeric(0)
   for (i in seq_along(months)) {
@@ -72,8 +88,12 @@ plot_richness_figure <- function(plot_means, path) {
   graphics::mtext("Mean species richness (species per quadrat)",
                   side = 2, line = 3.8, cex = 1.02)
   graphics::mtext(
-    "Points = individual plots (labelled by plot ID); lines = treatment means (4 plots each)",
-    side = 1, line = 4.65, cex = 0.78, col = "#57616D"
+    "Points = individual plots (labelled by plot ID); black lines = treatment means (4 plots each)",
+    side = 1, line = 4.3, cex = 0.78, col = "#57616D"
+  )
+  graphics::mtext(
+    "Grey lines join the three plots in the same block (line type = block a-d)",
+    side = 1, line = 5.25, cex = 0.78, col = "#57616D"
   )
 
   invisible(list(points = do.call(rbind, drawn_points), means = drawn_means))
@@ -261,13 +281,64 @@ for (m in months) {
               m, csv_means[[m]], r[1], r[2]))
 }
 
+# 8. Blocked comparison of the 12 plot means. Step 5 checked the design: one
+#    plot of each treatment in each of four blocks. Block is therefore kept
+#    in the model, so differences between blocks are not mistaken for
+#    treatment effects, and the uncertainty of each treatment mean is reported.
+analysis_data <- plot_richness
+analysis_data$Cultivation <- factor(analysis_data$Cultivation, levels = months)
+analysis_data$Block <- factor(analysis_data$Block)
+blocked_fit <- stats::lm(MeanRichness ~ Cultivation + Block, data = analysis_data)
+blocked_anova <- stats::anova(blocked_fit)
+residual_df <- stats::df.residual(blocked_fit)
+residual_ms <- blocked_anova["Residuals", "Mean Sq"]
+n_blocks <- nlevels(analysis_data$Block)
+# In this balanced design every treatment mean is based on one plot per block,
+# so its standard error is sqrt(residual mean square / number of blocks).
+se_mean <- sqrt(residual_ms / n_blocks)
+se_difference <- sqrt(2 * residual_ms / n_blocks)
+treatment_means <- tapply(analysis_data$MeanRichness, analysis_data$Cultivation, mean)
+
+cat("Blocked analysis of plot means: lm(MeanRichness ~ Cultivation + Block)\n")
+for (term in c("Cultivation", "Block")) {
+  cat(sprintf("  %-11s F(%d, %d) = %.2f, p = %.3f\n", term,
+              blocked_anova[term, "Df"], residual_df,
+              blocked_anova[term, "F value"], blocked_anova[term, "Pr(>F)"]))
+}
+cat(sprintf("  Treatment means +/- SE (SE from the model, %d residual df):\n",
+            residual_df))
+for (m in months) {
+  cat(sprintf("    %-8s %.2f +/- %.2f\n", m, treatment_means[[m]], se_mean))
+}
+cat(sprintf("  SE of a difference between two treatment means = %.2f\n",
+            se_difference))
+
+# Rank-based check of the within-block pattern: in how many blocks does each
+# treatment have the highest plot mean?
+first_in_block <- tapply(seq_len(nrow(analysis_data)), analysis_data$Block,
+                         function(rows) as.character(
+                           analysis_data$Cultivation[rows][which.max(
+                             analysis_data$MeanRichness[rows])]))
+friedman <- stats::friedman.test(MeanRichness ~ Cultivation | Block,
+                                 data = analysis_data)
+cat(sprintf("  Highest plot mean within a block: %s\n",
+            paste(names(first_in_block), first_in_block, sep = " = ",
+                  collapse = ", ")))
+cat(sprintf("  Friedman test (treatments ranked within blocks): chi-squared = %.1f, df = %d, p = %.3f\n",
+            friedman$statistic, friedman$parameter, friedman$p.value))
+
+
 # Interpretation
-# May cultivation had the highest mean plot-level species richness
-# (9.65 species per quadrat), compared with March (7.81) and October (7.61).
+# May cultivation had the highest typical richness (9.65 species per quadrat,
+# against 7.81 for March and 7.61 for October), but plots varied widely within
+# every treatment and the ranges overlap (March 6.33-10.00, May 7.40-11.60,
+# October 6.40-10.25).
 
-# Richness varied among plots within each treatment, with overlapping
-# ranges (March: 6.33–10.00; May: 7.40–11.60; October: 6.40–10.25).
+# The blocked analysis does not detect a treatment effect (F(2, 6) = 1.77,
+# p = 0.248; May - March = 1.84, 95% CI -1.08 to 4.76), although May had the
+# highest plot mean in all four blocks (exact Friedman p = 0.069).
 
-# These descriptive patterns do not establish causation; interpreting
-# treatment effects requires evidence of randomisation, baseline
-# comparability, and control of block-level environmental variation.
+# The figure alone cannot show that cultivation timing caused the
+# differences: that would need the months to have been assigned to plots at
+# random within blocks, which the metadata does not state, and four plots per
+# treatment give little power to detect a difference of about two species.

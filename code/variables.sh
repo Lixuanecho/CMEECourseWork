@@ -8,7 +8,7 @@
 # Special variables
 echo "This script was called with $# parameters"
 echo "The script's name is $0"
-echo "The arguments are $@"
+echo "The arguments are $*"   # "$*" joins all arguments into one string
 echo "The first argument is $1"
 echo "The second argument is $2"
 echo
@@ -17,7 +17,8 @@ echo
 MY_VAR='some string'
 echo "The current value of MY_VAR is: $MY_VAR"
 echo
-read -p "Enter a new string (or press Enter to keep the same): " NEW_VAR
+# -r keeps backslashes literal
+read -r -p "Enter a new string (or press Enter to keep the same): " NEW_VAR
 
 if [ -n "$NEW_VAR" ]; then
     MY_VAR="$NEW_VAR"
@@ -27,10 +28,11 @@ echo
 echo "Now MY_VAR is: $MY_VAR"
 echo
 
-# Read two numbers
-read -p "Enter two numbers separated by space(s): " a b
+# Read two numbers (assumed to be integers, as in the course example;
+# validating arbitrary arithmetic input is outside this exercise)
+read -r -p "Enter two numbers separated by space(s): " a b
 if [ -z "$a" ] || [ -z "$b" ]; then
-    echo "No input detected, using default values 0 and 0."
+    echo "Two numbers were not entered, so the default values 0 and 0 are used."
     a=0
     b=0
 fi

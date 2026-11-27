@@ -5,16 +5,6 @@
 # Usage: Rscript code/observations_practice.R
 # Date: Nov 2026
 
-observations <- read.csv(
-    "data/bootcamp_observations.csv",
-    colClasses = "character",  # Read every column as character data
-    na.strings = "",           # Treat empty fields as NA
-    check.names = FALSE        # Preserve the original column names
-)
-
-str(observations)
-print(observations)
-
 # Why a missing count and an observed zero must not be treated alike
 #
 # A count of 0 is a measurement: somebody looked and counted none. An empty
@@ -30,27 +20,70 @@ print(observations)
 
 read_observations <- function(path) {
 
-    data <- read.csv(
-        path,
-        colClasses = "character",
-        na.strings = "",
-        check.names = FALSE
-    )
+    # A missing file stops with a clear message instead of R's connection error
+    if (!file.exists(path) || dir.exists(path)) {
+        stop("Input file not found: ", path, call. = FALSE)
+    }
+
+    # The raw lines are read once: both checks below and the line numbers in
+    # the error messages use them
+    lines <- readLines(path, warn = FALSE)
 
     expected_columns <- c("site", "date", "count")
 
-    if (!identical(names(data), expected_columns)) {  # Check exact column names and order
+    # Check the header exactly as written on line 1. read.csv() would skip
+    # blank lines before it and trim spaces around the names, so a header such
+    # as "site,date,count " would pass; the Python version (csv.DictReader)
+    # rejects it, so this version does too. scan() only splits the line into
+    # fields and keeps any spaces (strip.white = FALSE).
+    header <- if (length(lines) == 0) character(0) else scan(
+        text = lines[1], what = "", sep = ",", quote = "\"",
+        strip.white = FALSE, na.strings = character(0), quiet = TRUE
+    )
+
+    if (!identical(header, expected_columns)) {       # Check exact column names and order
         stop(
             basename(path),
             ": expected columns 'site', 'date', 'count' in that order; found '",
-            paste(names(data), collapse = "', '"), "'.",
+            paste(header, collapse = "', '"), "'.",
             call. = FALSE
         )
     }
 
+    # Every non-empty line must have exactly 3 fields. read.csv() pads a short
+    # row with NA (fill = TRUE), so "A,2026-10-01" would otherwise be read as a
+    # missing count instead of being rejected as a broken row, as the Python
+    # version does. count.fields() gives one value per line: 0 for an empty
+    # line, NA for the first line of a quoted field that continues on the next.
+    n_fields <- count.fields(path, sep = ",", quote = "\"", comment.char = "",
+                             blank.lines.skip = FALSE)
+
+    if (length(n_fields) != length(lines)) {          # Lines and counts must align
+        stop(basename(path), ": could not count the fields on each line.",
+             call. = FALSE)
+    }
+
+    wrong_line <- which(nzchar(lines) & n_fields != 3L)
+
+    if (length(wrong_line) > 0) {                     # Report the first broken line
+        line <- wrong_line[1]
+        stop(
+            basename(path), ": CSV line ", line, " has ", n_fields[line],
+            " field(s); expected 3 (site, date, count).",
+            call. = FALSE
+        )
+    }
+
+    data <- read.csv(
+        path,
+        colClasses = "character",  # Read every column as character data
+        na.strings = "",           # Treat empty fields as NA
+        check.names = FALSE        # Preserve the original column names
+    )
+
     # CSV line of each data row (line 1 is the header). read.csv() skips
     # blank lines, so "row + 1" would point to the wrong line if there were any.
-    csv_line <- which(nzchar(readLines(path, warn = FALSE)))[-1]
+    csv_line <- which(nzchar(lines))[-1]
 
     if (length(csv_line) != nrow(data)) {             # e.g. a quoted field split over lines
         csv_line <- seq_len(nrow(data)) + 1
@@ -159,11 +192,16 @@ summarise_observations <- function(data) {
 }
 
 
-# Read and summarise the ordinary observations
+# Read, inspect and summarise the ordinary observations. The file is read
+# once, through read_observations(), so the table is validated before it is
+# inspected or used (counts are already converted to integers here).
 
 ordinary <- read_observations(
     "data/bootcamp_observations.csv"
 )
+
+str(ordinary)
+print(ordinary)
 
 ordinary_summary <- summarise_observations(ordinary)
 
@@ -224,6 +262,27 @@ stopifnot(inherits(invalid_result, "error"))  # Check that an error occurred
 stopifnot(
     grepl("found '-1'", conditionMessage(invalid_result), fixed = TRUE)
 )                                             # Check that the error identifies the invalid count
+
+
+# Check the two rules that read.csv() alone would not apply: a row with a
+# missing field and a header with a trailing space must both be rejected, as
+# in the Python version. The test files are written to R's temporary folder
+# and deleted again, so data/ is never changed.
+
+expect_rejected <- function(lines, expected_message) {
+    path <- tempfile(fileext = ".csv")
+    on.exit(unlink(path))                     # Delete the test file even if a check fails
+    writeLines(lines, path)
+    result <- tryCatch(read_observations(path), error = function(e) e)
+    stopifnot(inherits(result, "error"))
+    stopifnot(grepl(expected_message, conditionMessage(result), fixed = TRUE))
+}
+
+expect_rejected(c("site,date,count", "A,2026-10-01,2", "A,2026-10-02"),
+                "CSV line 3 has 2 field(s)")                 # Count field missing
+
+expect_rejected(c("site,date,count ", "A,2026-10-01,2"),
+                "expected columns 'site', 'date', 'count'")  # Trailing space in the header
 
 
 ## Plot known totals by site

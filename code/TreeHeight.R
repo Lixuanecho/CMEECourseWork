@@ -8,6 +8,13 @@
 # Date: Nov 2026
 
 
+# Deliberate repetition: get_TreeHeight.R contains a copy of the input checks
+# below and of TreeHeight(). Each script must run on its own, without a shared
+# helper file, and get_TreeHeight.R cannot source() this file, because that
+# would run this whole script and rewrite results/TreeHts.csv. Change both
+# copies together; README Test 5 for get_TreeHeight.R (diff of the two
+# outputs) checks that they still agree.
+
 input_file <- "data/trees.csv"
 
 # call. = FALSE: show only the message, not the R call.

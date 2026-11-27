@@ -9,7 +9,7 @@ tail -n +2 ../data/fasta/e_coli.fasta
 #3
 tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | wc -c
 # Answer 4686137
-# tail excludes the FASTA header, tr -d '\r\n' removes carriage returns and newlines, and wc -c counts the remaining bytes. As each nucleotide symbol is a single ASCII character, the result (4686137) represents the total number of sequence positions, including ambiguous bases such as N, R, Y, M and W.
+# tail excludes the FASTA header, tr -d '\r\n' removes carriage returns and newlines, and wc -c counts the remaining bytes. As each nucleotide symbol is a single ASCII character, the result (4686137) represents the total number of sequence positions, including the two ambiguity codes that occur in this file (one R and one Y; there are no N, M or W symbols).
 
 #4
 tail -n +2 ../data/fasta/e_coli.fasta | tr -d '\r\n' | tr '[:lower:]' '[:upper:]' | grep -o 'ATGC' | wc -l

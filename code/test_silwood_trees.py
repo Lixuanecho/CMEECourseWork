@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Unit and integration tests for the synthetic Silwood tree-survey workflow."""
+"""Unit and integration tests for the synthetic Silwood tree-survey workflow.
+
+Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
+Script: test_silwood_trees.py
+Desc:   unittest suite for code/clean_silwood_trees.py. It checks every rule in
+        data/silwood_trees_metadata.md (missing, invalid and boundary values,
+        the order of rejection reasons, duplicate identifiers, oak counts),
+        the line numbers reported as source_row (also after a blank line),
+        decimal output for small numbers, clear errors for a missing input,
+        that importing the module has no side effects, and that a rerun gives
+        identical files without changing the input. All file tests use
+        temporary folders, so the repository's data/ and results/ are not used.
+Usage:  python3 -B code/test_silwood_trees.py   (run from the repository root;
+        -B stops Python writing code/__pycache__/)
+Date:   Oct 2026 (revised Nov 2026)
+"""
 
 import csv
 import os
@@ -24,11 +39,21 @@ def make_record(**changes):
     return row
 
 
+def numbered(rows, first_line=2):
+    """Pair rows with the line numbers they would have in a CSV file.
+
+    process_records() takes (line number, row) pairs, as load_records()
+    returns them. In a file with a header and no blank lines, the first record
+    is on line 2.
+    """
+    return list(enumerate(rows, start=first_line))
+
+
 class TestValidation(unittest.TestCase):
     """Exercise every field and rejection category in the metadata."""
 
     def check_reasons(self, expected, **changes):
-        cleaned, reasons = trees.validate_record(make_record(**changes), 2, set())
+        cleaned, reasons = trees.validate_record(make_record(**changes), set())
         self.assertIsNone(cleaned)
         self.assertEqual(reasons, expected)
 
@@ -37,7 +62,7 @@ class TestValidation(unittest.TestCase):
                           genus=" quERCUS ", species=" ROBUR ")
         original = row.copy()
         accepted_ids = set()
-        cleaned, reasons = trees.validate_record(row, 2, accepted_ids)
+        cleaned, reasons = trees.validate_record(row, accepted_ids)
         self.assertEqual(reasons, [])
         self.assertEqual(cleaned, make_record(location="Nash's Field",
                                              distance_m="12.5", angle_degrees="35.0"))
@@ -48,7 +73,7 @@ class TestValidation(unittest.TestCase):
         for location in ("Silwood Bottom", "Nash's Field", "Manor House", "Reactor Wood"):
             with self.subTest(location=location):
                 cleaned, reasons = trees.validate_record(
-                    make_record(location=f" {location.swapcase()} "), 2, set())
+                    make_record(location=f" {location.swapcase()} "), set())
                 self.assertEqual(reasons, [])
                 self.assertEqual(cleaned["location"], location)
 
@@ -58,7 +83,7 @@ class TestValidation(unittest.TestCase):
                                ("Fagus", "sylvatica"), ("Fraxinus", "excelsior")):
             with self.subTest(genus=genus, species=species):
                 cleaned, reasons = trees.validate_record(
-                    make_record(genus=genus.swapcase(), species=species.upper()), 2, set())
+                    make_record(genus=genus.swapcase(), species=species.upper()), set())
                 self.assertEqual(reasons, [])
                 self.assertEqual((cleaned["genus"], cleaned["species"]), (genus, species))
 
@@ -92,7 +117,7 @@ class TestValidation(unittest.TestCase):
         for value in ("0.001", "100"):
             with self.subTest(value=value):
                 accepted, reasons = trees.validate_record(
-                    make_record(distance_m=value), 2, set())
+                    make_record(distance_m=value), set())
                 self.assertEqual(reasons, [])
                 self.assertIsNotNone(accepted)
 
@@ -103,7 +128,7 @@ class TestValidation(unittest.TestCase):
         for value in ("0.001", "89.999"):
             with self.subTest(value=value):
                 accepted, reasons = trees.validate_record(
-                    make_record(angle_degrees=value), 2, set())
+                    make_record(angle_degrees=value), set())
                 self.assertEqual(reasons, [])
                 self.assertIsNotNone(accepted)
 
@@ -112,6 +137,28 @@ class TestValidation(unittest.TestCase):
             for value in ("nan", "NaN", "inf", "-inf", "Infinity", "abc"):
                 with self.subTest(field=field, value=value):
                     self.check_reasons([f"invalid {field}"], **{field: value})
+
+    def test_number_text_must_be_plain_ascii(self):
+        """float() accepts these, but they are not ordinary number text."""
+        # 1_0 (digit separator), Arabic-Indic and full-width digits, a unit,
+        # hexadecimal, and an exponent that overflows to inf
+        for field in ("distance_m", "angle_degrees"):
+            for value in ("1_0", "١٢", "１２", "12 m", "0x10", "1e999"):
+                with self.subTest(field=field, value=value):
+                    self.check_reasons([f"invalid {field}"], **{field: value})
+
+    def test_small_numbers_are_written_as_decimal_text(self):
+        """str(float()) would give '1e-07'; the metadata asks for decimal text."""
+        for value in ("0.0000001", "1e-7", "1E-7"):
+            with self.subTest(value=value):
+                cleaned, reasons = trees.validate_record(
+                    make_record(distance_m=value, angle_degrees="0.00001"), set())
+                self.assertEqual(reasons, [])
+                self.assertEqual(cleaned["distance_m"], "0.0000001")
+                self.assertEqual(cleaned["angle_degrees"], "0.00001")
+        # Ordinary values keep the same text as before the change
+        cleaned, _ = trees.validate_record(make_record(distance_m="1e2"), set())
+        self.assertEqual(cleaned["distance_m"], "100.0")
 
     def test_combined_reasons_in_metadata_order(self):
         self.check_reasons([
@@ -125,13 +172,13 @@ class TestValidation(unittest.TestCase):
         ], genus="Acer", species="robur", distance_m="0", angle_degrees="bad")
 
     def test_duplicate_id(self):
-        cleaned, reasons = trees.validate_record(make_record(), 3, {"ST001"})
+        cleaned, reasons = trees.validate_record(make_record(), {"ST001"})
         self.assertIsNone(cleaned)
         self.assertEqual(reasons, ["duplicate record_id"])
 
     def test_duplicate_and_other_error(self):
         cleaned, reasons = trees.validate_record(
-            make_record(location="Unknown"), 3, {"ST001"})
+            make_record(location="Unknown"), {"ST001"})
         self.assertIsNone(cleaned)
         self.assertEqual(reasons, ["duplicate record_id", "invalid location"])
 
@@ -144,7 +191,7 @@ class TestProcessing(unittest.TestCase):
                 make_record(record_id="ST003", distance_m="0"),
                 make_record(record_id="ST001"),
                 make_record(record_id="bad", location="Wrong")]
-        accepted, issues = trees.process_records(rows)
+        accepted, issues = trees.process_records(numbered(rows))
         self.assertEqual([row["record_id"] for row in accepted], ["ST001", "ST002"])
         self.assertEqual(issues, [
             {"source_row": "3", "record_id": "ST003",
@@ -155,13 +202,13 @@ class TestProcessing(unittest.TestCase):
 
     def test_invalid_row_does_not_reserve_identifier(self):
         rows = [make_record(distance_m="bad"), make_record()]
-        accepted, issues = trees.process_records(rows)
+        accepted, issues = trees.process_records(numbered(rows))
         self.assertEqual(len(accepted), 1)
         self.assertEqual(accepted[0]["record_id"], "ST001")
         self.assertEqual(issues[0]["reasons"], "invalid distance_m")
 
     def test_first_accepted_id_is_reserved(self):
-        accepted, issues = trees.process_records([make_record(), make_record()])
+        accepted, issues = trees.process_records(numbered([make_record(), make_record()]))
         self.assertEqual(len(accepted), 1)
         self.assertEqual(issues[0]["reasons"], "duplicate record_id")
 
@@ -169,7 +216,7 @@ class TestProcessing(unittest.TestCase):
         rows = [make_record(), make_record(record_id="ST002", species="petraea"),
                 make_record(record_id="ST003", genus="Acer", species="pseudoplatanus"),
                 make_record(record_id="ST004")]
-        accepted, _ = trees.process_records(rows)
+        accepted, _ = trees.process_records(numbered(rows))
         self.assertEqual(trees.summarise_oaks(accepted), [
             {"species": "petraea", "count": "1"},
             {"species": "robur", "count": "2"},
@@ -188,7 +235,7 @@ class TestProcessing(unittest.TestCase):
             ),
         ]
 
-        accepted, issues = trees.process_records(rows)
+        accepted, issues = trees.process_records(numbered(rows))
 
         self.assertEqual(len(accepted), 1)
         self.assertEqual(len(issues), 1)
@@ -207,7 +254,7 @@ class TestProcessing(unittest.TestCase):
                         distance_m="0"),
         ]
 
-        clean_records, issues = trees.process_records(rows)
+        clean_records, issues = trees.process_records(numbered(rows))
         self.assertEqual([row["record_id"] for row in clean_records], ["ST001"])
         self.assertEqual(issues, [{
             "source_row": "3", "record_id": "ST002",
@@ -252,6 +299,49 @@ class TestFileWorkflow(unittest.TestCase):
             path.write_text("wrong,header\na,b\n", encoding="utf-8")
             with self.assertRaises(ValueError):
                 trees.load_records(path)
+
+    def test_source_row_after_a_blank_line(self):
+        """Regression test: csv skips blank lines, but source_row must not."""
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "raw.csv"
+            header = ",".join(trees.INPUT_FIELDS)
+            path.write_text(
+                f"{header}\n"                                          # line 1
+                "ST001,Silwood Bottom,Quercus,robur,12.5,35\n"          # line 2
+                "\n"                                                   # line 3 (blank)
+                "ST002,Silwood Bottom,Quercus,robur,0,35\n",            # line 4
+                encoding="utf-8",
+            )
+            numbered_rows = trees.load_records(path)
+            self.assertEqual([line for line, _ in numbered_rows], [2, 4])
+            accepted, issues = trees.process_records(numbered_rows)
+            self.assertEqual([row["record_id"] for row in accepted], ["ST001"])
+            self.assertEqual(issues, [{"source_row": "4", "record_id": "ST002",
+                                       "reasons": "distance_m out of range"}])
+
+    def test_missing_input_file_gives_clear_error(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(FileNotFoundError, "Input file not found"):
+                trees.load_records(Path(folder) / "missing.csv")
+
+    def test_command_line_run_without_input_stops_cleanly(self):
+        """With no data/ folder: exit status 1, one-line error, nothing written."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "code").mkdir()
+            script = root / "code" / "clean_silwood_trees.py"
+            script.write_bytes(Path(trees.__file__).read_bytes())
+            outcome = subprocess.run(
+                [sys.executable, "-B", str(script)],
+                cwd=root, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(outcome.returncode, 1)
+            self.assertEqual(outcome.stdout, "")
+            self.assertEqual(
+                outcome.stderr.strip(),
+                "Error: Input file not found: data/silwood_trees_raw.csv",
+            )
+            self.assertFalse((root / "results").exists())
 
     def test_main_writes_all_outputs_and_preserves_input(self):
         with tempfile.TemporaryDirectory() as folder:

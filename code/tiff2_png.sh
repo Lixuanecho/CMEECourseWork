@@ -1,13 +1,25 @@
 #!/bin/bash
 # Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
 # Script: tiff2_png.sh
-# Desc: Converts all .tif files in data/ to .png files in results/
+# Desc: Converts every .tif file in data/ to a .png file of the same name in
+#       results/ (created if needed; a PNG of the same name is replaced).
+#       Adapted from the course's current-directory starter so that, like the
+#       other scripts, it runs from the project root.
+# Input: data/*.tif. The repository ships no TIFF images on purpose; README.md
+#        shows how to test the script on generated images in a temporary copy,
+#        so nothing is added to data/.
+# Requires: ImageMagick ('magick' in version 7, 'convert' in version 6)
 # Usage: bash code/tiff2_png.sh   (run from the project root)
 # Date: Nov 2026
 
-# Stop early if ImageMagick's convert is not installed
-if ! command -v convert > /dev/null; then
-    printf 'Error: ImageMagick convert is required.\n' >&2
+# Use ImageMagick 7's 'magick' when it is installed, otherwise version 6's
+# 'convert' (the course starter's command); stop early if neither exists
+if command -v magick > /dev/null 2>&1; then
+    converter=magick
+elif command -v convert > /dev/null 2>&1; then
+    converter=convert
+else
+    printf 'Error: ImageMagick is required (neither magick nor convert was found).\n' >&2
     exit 1
 fi
 
@@ -17,7 +29,7 @@ for filename in data/*.tif
 do
     # If nothing matches, the loop gets the literal 'data/*.tif', which is not a real file
     if [[ ! -f "$filename" ]]; then
-        printf 'Error: no .tif files found in data/.\n' >&2
+        printf 'Error: no .tif files found in data/. The repository ships none; see README.md to test this script.\n' >&2
         exit 1
     fi
 
@@ -26,7 +38,7 @@ do
 
     printf 'Converting %s\n' "$filename"
 
-    if ! convert "$filename" "$output_file"; then
+    if ! "$converter" "$filename" "$output_file"; then
         printf 'Error: conversion failed for %s\n' "$filename" >&2
         exit 1
     fi

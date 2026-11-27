@@ -77,7 +77,8 @@ if (nrow(trees) == 0) {
     )
 }
 
-# Same checks and messages as TreeHeight.R.
+# Same checks and messages as TreeHeight.R: a deliberate copy, kept in step
+# with it (the note above TreeHeight() below explains why it is not shared).
 # Text entries make the column non-numeric.
 if (!is.numeric(trees$Distance.m)) {
     stop(

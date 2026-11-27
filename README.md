@@ -1,362 +1,288 @@
-# Bootcamp Assignment Repository
+# CMEE Computing Bootcamp Coursework
+
+**Author:** Lixuan Zhu ([lixuan.zhu26@imperial.ac.uk](mailto\:lixuan.zhu26@imperial.ac.uk))\
+**Module:** Biological Computing Bootcamp, CMEE, Imperial College London\
+**Repository:** [https://github.com/Lixuanecho/CMEECourseWork](https://github.com/Lixuanecho/CMEECourseWork)\
+**Reference:** [MulQuaBio (MQB)](https://mulquabio.github.io/MQB/intro.html)
+
+## Contents
+
+1. [What the project contains](#1-overview-what-the-project-contains)
+
+2. [Software and packages](#2-software-and-packages)
+
+3. [How to run and check each script](#3-how-to-run-and-check-each-script)
+
+4. [Input and output files of each program](#4-input-and-output-files-of-each-program)
+
+5. [Changes after the formative feedback, and how I checked them](#5-changes-after-the-formative-feedback-and-how-i-checked-them)
+
+6. [AI use](#6-ai-use)
+
+7. [Clean clone check](#7-clean-clone-check)
+
+---
+
+## 1. Overview: what the project contains
+
+| Part | Topic | Files in `code/` |
+| - | - | - |
+| Assignment 1 | Process FASTA files with Unix commands; write two delimiter-conversion scripts | `unixPrac1.txt`, `tabtocsv.sh`, `csvtospace.sh` |
+| Assignment 2 | Validate and clean the simulated Silwood tree-survey data with Python, and write unit tests | `clean_silwood_trees.py`, `test_silwood_trees.py` |
+| Assignment 3 | Calculate tree heights from distances and angles with R, and analyse plant species richness at Pound Hill | `TreeHeight.R`, `get_TreeHeight.R`, `run_get_TreeHeight.sh`, `pound_hill_analysis.R` |
+| Assignment 4 | 30 in-class practice scripts, each described in Section 3.4 | Shell (7): `boilerplate.sh`, `MyExampleScript.sh`, `variables.sh`, `CheckLabel.sh`, `CountLines.sh`, `ConcatenateTwoFiles.sh`, `tiff2_png.sh`<br>Python (12): `boilerplate.py`, `MyExampleScript.py`, `loops.py`, `cfexercises1.py`, `cfexercises2.py`, `control_flow.py`, `test_control_flow.py`, `using_name.py`, `sysargv.py`, `debugme.py`, `observations_practice.py`, `test_observations_practice.py`<br>R (11): `boilerplate.R`, `basic_io.R`, `control_flow.R`, `r_conditionals.R`, `break.R`, `next.R`, `try.R`, `browse.R`, `observations_practice.R`, `data_wrang.R`, `data_wrang_tidy.R` |
 
 ### Repository structure
 
 ```text
 CMEECourseWork/
 ├── README.md
-├── .gitignore
-├── code/
-│   ├── unixPrac1.txt                
-│   ├── tabtocsv.sh     
-│   ├── csvtospace.sh       
-│   ├── clean_silwood_trees.py
-│   ├── test_silwood_trees.py
-│   ├── TreeHeight.R
-│   ├── get_TreeHeight.R
-│   ├── run_get_TreeHeight.sh
-│   └── pound_hill_analysis.R
+├── .gitignore        # keeps results/, sandbox/, caches, R session files and Rplots.pdf out of Git
+├── Feedback/         # formative feedback: assignment-1-2026.md, assignment-2-2026.md, assignment-3-2026.md
+├── code/             # 39 files: the 9 assigned files and the 30 practice scripts listed above
 ├── data/
-│   ├── fasta/
-│   ├── temperatures/
-│   ├── tab-example.tsv
-│   ├── silwood_trees_raw.csv
-│   ├── silwood_trees_metadata.md
-│   ├── trees.csv
-│   ├── pound_hill_data.csv
-│   └── pound_hill_meta_data.csv
-├── results/                         # generated outputs; Git-ignored
-└── sandbox/                         # temporary work; Git-ignored
+│   ├── fasta/                      # 407228326.fasta, 407228412.fasta, e_coli.fasta (A1)
+│   ├── temperatures/               # 1800.csv – 1803.csv (A1)
+│   ├── tab-example.tsv             # my own small test file with an empty field (A1)
+│   ├── silwood_trees_raw.csv       # raw tree survey, 36 records (A2)
+│   ├── silwood_trees_metadata.md   # validation rules for the survey (A2)
+│   ├── trees.csv                   # tree distances and angles, 120 records (A3, basic_io.R)
+│   ├── pound_hill_data.csv         # species counts (A3, data_wrang*.R)
+│   ├── pound_hill_meta_data.csv    # metadata for the Pound Hill data
+│   └── bootcamp_observations.csv, bootcamp_observations_boundary.csv, bootcamp_observations_invalid.csv
+│                                   # ordinary, boundary and invalid observation records (A4)
+├── results/          # generated outputs, Git-ignored
+└── sandbox/          # Git-ignored
 ```
 
+---
 
-**Author:** Lixuan Zhu  
-**Module:** Biological Computing Bootcamp (CMEE, Imperial College London)  
-**Reference:** [MulQuaBio (MQB)](https://mulquabio.github.io/MQB/intro.html)
+## 2. Software and packages
 
-**Environment:** Unix/Linux; GNU Bash 5.3.9, Python 3.14.4 and R 4.5.2. The documented R analyses use base R.
+| Software | Version I used | Needed for |
+| - | - | - |
+| Bash | 5.3.9 | All `.sh` scripts and the check commands; also uses `wc`, `tail`, `tr`, `grep`, `awk`, `sed`, `cat`, `cmp`, `file` |
+| Python | 3.14.4 | All `.py` scripts |
+| R | 4.5.2 | All `.R` scripts |
+| R packages `reshape2`, `dplyr`, `tidyr` | latest (CRAN) | `data_wrang.R` (`reshape2`); `data_wrang_tidy.R` (`dplyr`, `tidyr`) |
+| ImageMagick | 7.1.2 | `tiff2_png.sh`, which uses `magick` (version 7) or falls back to `convert` (version 6) |
+| Git | any | Cloning the repository |
 
+### Installation
 
-# Assignment 1 — UNIX and Bash
-
-- `code/unixPrac1.txt`: five FASTA exercises covering line counts, sequence extraction and length, `ATGC` occurrences and the AT/GC ratio, with commands, results and explanations.
-- `code/tabtocsv.sh`: replaces tabs with commas in a text file.
-- `code/csvtospace.sh`: replaces commas with spaces in a CSV file.
-
-### How to run
-
-The scripts use Bash and standard UNIX utilities (`tr`, `wc`, `tail`, `grep`, `awk` and `mkdir`). The FASTA ratio uses `awk`.
-
-Run the converters from the **repository root**:
+```r
+install.packages(c("reshape2", "dplyr", "tidyr"))   # in R
+```
 
 ```bash
-bash code/tabtocsv.sh data/tab-example.tsv
-bash code/csvtospace.sh data/temperatures/1800.csv
+brew install imagemagick          # macOS (ImageMagick 7)
+sudo apt install imagemagick      # Ubuntu (ImageMagick 6)
 ```
 
-These commands generate `results/tab-example.tsv.csv` and `results/1800.csv.txt`, respectively. To convert all temperature files:
+## 3. How to run and check each script
+
+- Run all commands from the project root. Scripts save output files to results/ and create it if needed.
+- Expected outputs appear in comments beside the commands, or in the table in Section 3.4. Intentional errors are marked.
+- Commands that import other scripts use python3 -B to avoid creating __pycache__/.
+
+## 3.1 Assignment 1 — UNIX and Bash
+
+#### `unixPrac1.txt`
+
+`code/unixPrac1.txt` holds the commands, answers and explanations for the five FASTA exercises. It is a record, not a script. The commands use `../data/…` paths, so this loop runs them one by one from `code/` and prints the last line of each output.
 
 ```bash
-for file in data/temperatures/*.csv; do
-    bash code/csvtospace.sh "$file"
-done
+(cd code && grep -v -e '^#' -e '^[[:space:]]*$' unixPrac1.txt |
+  while IFS= read -r cmd; do printf '$ %s\n' "$cmd"; sh -c "$cmd" | tail -n 1; done)
 ```
 
-For the FASTA questions, enter `code/` and run each numbered command in `unixPrac1.txt` separately. The text file is **not** an executable script.
+The third column rechecks each answer with a different method. Its output should match the second column.
+
+| Question | Answer printed | Test example (independent check) |
+| - | - | - |
+| 1. Total lines in the three FASTA files | `78258 total` | `python3 -c 'import glob; print(sum(open(f).read().count("\n") for f in glob.glob("data/fasta/*.fasta")))'` → `78258` |
+| 2. *E. coli* sequence without the header | The sequence; last line `CTTAGTAAGTATTTTTC` | `tail -n 1 data/fasta/e_coli.fasta` → `CTTAGTAAGTATTTTTC` |
+| 3. Sequence length | `4686137` | `python3 -c 's = "".join(open("data/fasta/e_coli.fasta").read().splitlines()[1:]).upper(); print(len(s))'` → `4686137` |
+| 4. Count of `ATGC` | `21968` | `python3 -c 's = "".join(open("data/fasta/e_coli.fasta").read().splitlines()[1:]).upper(); print(s.count("ATGC"))'` → `21968` |
+| 5. AT/GC ratio | `0.969228` | `python3 -c 's = "".join(open("data/fasta/e_coli.fasta").read().splitlines()[1:]).upper(); print(round((s.count("A") + s.count("T")) / (s.count("G") + s.count("C")), 6))'` → `0.969228` |
+| Ambiguity codes | Only one `R` and one `Y`. Counted in the length (Q3), left out of the ratio (Q5) | `python3 -c 'import collections; s = "".join(open("data/fasta/e_coli.fasta").read().splitlines()[1:]).upper(); print(collections.Counter(c for c in s if c not in "ACGT"))'` → `Counter({'R': 1, 'Y': 1})` |
+
+#### `tabtocsv.sh`
+
+Replaces tabs with commas and writes `results/<file name>.csv`. The checks compare the output with hand-written text.
 
 ```bash
-cd code
-cat unixPrac1.txt
-# Run the numbered commands individually, then return to the root:
-cd ..
+bash code/tabtocsv.sh data/tab-example.tsv          # creates results/tab-example.tsv.csv
+bash -n code/tabtocsv.sh && echo "syntax OK"
+printf 'a,b,c\n1,2,3\n4,,6\n' | cmp - results/tab-example.tsv.csv && echo PASS   # row 3 has an empty middle field
+bash code/tabtocsv.sh data/tab-example.tsv > /dev/null
+wc -l < results/tab-example.tsv.csv                  # rerun: still 3, the file is replaced, not appended to
+bash code/tabtocsv.sh; echo "exit status: $?"                    # Error: Exactly one input file is required. (and usage); exit status: 1
+bash code/tabtocsv.sh data/missing.tsv; echo "exit status: $?"   # Error: Input file 'data/missing.tsv' does not exist ...; exit status: 1
 ```
 
-### Testing
+The last two inputs are invalid. Each prints an error to stderr and exits with status 1.
+
+#### `csvtospace.sh`
+
+Replaces commas with spaces and writes `results/<file name>.txt`. Again, the checks do not reuse `tr`.
 
 ```bash
-# Check shell syntax.
-bash -n code/tabtocsv.sh code/csvtospace.sh
-
-# Check the outputs against direct delimiter substitutions.
-tr '\t' ',' < data/tab-example.tsv | cmp - results/tab-example.tsv.csv
-tr ',' ' ' < data/temperatures/1800.csv | cmp - results/1800.csv.txt
+bash code/csvtospace.sh data/temperatures/1800.csv  # creates results/1800.csv.txt
+for file in data/temperatures/*.csv; do bash code/csvtospace.sh "$file"; done   # all four temperature files
+bash -n code/csvtospace.sh && echo "syntax OK"
+[ "$(head -n 1 results/1800.csv.txt)" = 'EZE00100082 18000101 TMAX -86   E ' ] && echo PASS
+grep -c ',' results/1800.csv.txt                     # Expected: 0 (no comma left)
+awk -F'[ ]' 'NF != 8' results/1800.csv.txt | wc -l   # Expected: 0 (every line keeps its 8 fields)
+wc -l < results/1800.csv.txt                         # Expected: 1825, as in the input
+bash code/csvtospace.sh                              # Error: Please provide exactly one CSV file.
+bash code/csvtospace.sh data/missing.csv             # Error: File 'data/missing.csv' not found or unreadable.
 ```
 
-### AI use
-On October 8 and October 9, I used ChatGPT as a tutor to learn Python syntax and rules.
+The last two inputs are invalid. Each prints an error to stderr and exits with status 1.
 
-# Assignment 2 — Silwood tree survey
+The temperature files have empty fields (`EZE00100082,18000101,TMAX,-86,,,E,`), which become runs of spaces. Splitting on any run of whitespace would lose them, so the check uses `awk -F'[ ]'` to split on single spaces. This is a limit of the space-separated format itself.
+## 3.2 Assignment 2 — Silwood tree survey
 
-This assignment cleans and validates synthetic tree survey data against the supplied metadata and summarises accepted oak records.
+`clean_silwood_trees.py` checks and cleans the 36 simulated records in `data/silwood_trees_raw.csv`, using the rules in the course metadata (`data/silwood_trees_metadata.md`). It does not fix spelling or guess missing values. A record that breaks any rule is rejected, with every reason listed. It writes three files:
 
-| Type | File | Contents |
-| --- | --- | --- |
-| Input | `data/silwood_trees_raw.csv` | Unmodified synthetic source records. |
-| Input | `data/silwood_trees_metadata.md` | Required fields, accepted values, validation rules and output contracts. |
-| Output | `results/silwood_trees_clean.csv` | Accepted, standardised records sorted by record ID. |
-| Output | `results/silwood_tree_issues.csv` | Rejected records with original source row, ID and ordered rejection reasons. |
-| Output | `results/oak_species_counts.csv` | Accepted `Quercus` records counted by species, sorted by species. |
+- `results/silwood_trees_clean.csv`: the accepted records, tidied and sorted by record ID.
+- `results/silwood_tree_issues.csv`: for each rejected record, its line number in the input file, its record ID and its rejection reasons, in the required order.
+- `results/oak_species_counts.csv`: the number of accepted `Quercus` records per species, sorted by species name.
 
-### Pseudocode — `clean_silwood_trees.py`
+`main()` calls `load_records()`, which checks the header and returns each record with its line number. `process_records()` runs `validate_record()` on each record and splits the accepted records from the rejected ones. `summarise_oaks()` only gets the accepted records, so rejected records never count towards the oak totals. Finally, `write_csv()` writes the three files.
+
+**Pseudocode — `clean_silwood_trees.py`**
 
 ```text
 Read the CSV and verify its header.
+Keep each record's line number in the file (reader.line_num, so blank lines are counted).
 Initialise accepted records, issues, and accepted IDs.
-For each source row (starting at line 2):
-    Trim text; validate fields against metadata-defined rules.
+For each record, in file order:
+    Trim text; validate fields against the metadata rules
+    (numbers must be plain ASCII number text, so "1_0" or non-ASCII digits are invalid).
     Collect all rejection reasons in the required order.
-    If invalid: record source row, ID and reasons.
-    Otherwise: store the canonical record and reserve its ID.
+    If invalid: record its line number, ID and reasons.
+    Otherwise: store the canonical record (numbers as decimal text) and reserve its ID.
 Sort accepted records by ID.
 Count accepted Quercus records by species; sort species names.
 Replace the three output CSV files.
+If the input is missing or its header is wrong: print one error line and exit with status 1, writing nothing.
 ```
-
-### Test notes
-
-The test script uses Python's `unittest` framework with 23 assertion-based tests. These verify text standardisation, missing and invalid values, duplicate IDs, record sorting, ordered rejection reasons, and oak species counts. Additional tests check that rejected records do not reserve their IDs, invalid oaks are excluded from species counts, and repeated runs produce consistent outputs without modifying the source data.
-
-**Run from the repository root:**
 
 ```bash
 python3 -B code/clean_silwood_trees.py
-python3 -B code/test_silwood_trees.py
+python3 -B code/test_silwood_trees.py       # Expected: Ran 28 tests ... OK
+wc -l results/silwood_trees_clean.csv results/silwood_tree_issues.csv   # 25 and 13: 24 accepted, 12 rejected, plus a header each
+cat results/oak_species_counts.csv          # Expected: petraea,4 and robur,4
+mkdir -p sandbox && cp results/silwood_trees_clean.csv results/silwood_tree_issues.csv results/oak_species_counts.csv sandbox/
+python3 -B code/clean_silwood_trees.py      # rerun
+for f in silwood_trees_clean.csv silwood_tree_issues.csv oak_species_counts.csv; do cmp "sandbox/$f" "results/$f" && echo "$f identical after rerun"; done
+git status --short data/                    # Expected: no output (the supplied inputs are unchanged)
+tmp=$(mktemp -d) && mkdir "$tmp/code" && cp code/clean_silwood_trees.py "$tmp/code/"
+python3 -B "$tmp/code/clean_silwood_trees.py"; echo "exit status: $?"   # Error: Input file not found: data/silwood_trees_raw.csv; exit status: 1
+rm -rf "$tmp"
 ```
 
-All 23 tests passed, producing `Ran 23 tests ... OK`. The supplied seven-record survey produced four accepted and three rejected records, with oak counts of `petraea: 1` and `robur: 2`.
+**Results on the supplied data.** Of the 36 records, 24 are accepted and 12 are rejected. The accepted oaks are 4 *petraea* and 4 *robur*. The 12 rejected records cover every kind of problem listed in the metadata. For example, line 26 of the source file has no ID, and line 37 breaks five rules at once (`invalid location; missing genus; missing species; invalid distance_m; missing angle_degrees`).
 
-The cleaner follows the supplied synthetic survey schema; missing values and misspellings are rejected rather than inferred.
+**Unit tests.** `test_silwood_trees.py` uses Python's `unittest`. All 28 tests pass:
 
-### AI use
-On October 16, I used ChatGPT as a tutor and gained insights into handling error messages, testing inputs, and the wording of README files.
+```bash
+python3 -B code/test_silwood_trees.py       # Ran 28 tests ... OK
+```
 
-# Assignment 3 — R practicals
+| Test | What I did | Result |
+| - | - | - |
+| Validation rules | Fed in missing, invalid and non-finite values, duplicate IDs and boundary values (0 and 100 m, 0° and 90°) | Each bad value is rejected with the right reason, text is cleaned up, and reasons appear in the required order |
+| Records affecting each other | Passed one valid and one invalid record through `process_records()` and `summarise_oaks()` | The rejected record does not take up its ID; neither the invalid oak nor the near-miss genus `Quercuss` is counted |
+| Line numbers | Added blank lines to the input | `source_row` still gives the real line number (the `csv` module skips blank lines, so counting records would be wrong) |
+| Number formats | Fed in `1_0`, Arabic-Indic digits, full-width digits, `0x10` and `1e999` (some of which `float()` accepts), and a very small distance `0.0000001` | All odd formats are rejected; the small distance is written as decimal text, not `1e-07` |
+| Stable output | Ran the cleaner twice and imported the module | Identical files, sorted by record ID, with correct oak counts; the raw CSV is unchanged; importing creates no files |
+| Missing input | Ran the cleaner in a folder without `data/` | Prints `Input file not found`, exits with status 1, shows no traceback and creates no output folder |
 
-## 3.1 Tree-height practicals
+## 3.3 Assignment 3 — R practicals
 
-`TreeHeight.R` and `get_TreeHeight.R` use the same formula:
+### 3.3.1 Tree heights
 
-`height_m = Distance.m × tan(Angle.degrees × π / 180)`
+Both scripts calculate tree height as `height_m = Distance.m × tan(Angle.degrees × π / 180)`. They write four columns, `Species,Distance.m,Angle.degrees,height_m`, and keep the input row order.
 
 | | `TreeHeight.R` | `get_TreeHeight.R` |
-| --- | --- | --- |
-| Input | Fixed to `data/trees.csv` | One CSV path given on the command line |
-| Accepted rows | Exactly 120 rows | 1 row or more |
+| - | - | - |
+| Input | Always `data/trees.csv` (exactly 120 data rows) | Any CSV in the same format, given on the command line (at least 1 data row) |
 | Output | `results/TreeHts.csv` | `results/<input file name>_treeheights.csv` |
-| Output columns | `Species,Distance.m,Angle.degrees,height_m` | `Species,Distance.m,Angle.degrees,height_m` |
 
-Both scripts reject input with:
-
-- Wrong or missing column names
-- Non-numeric or non-finite values
-- `Distance.m` outside the range `(0, 100]` m
-- `Angle.degrees` outside the range `(0, 90)`°
-
-For a bad measurement, the error names the column and the failing data row(s), for example `Invalid data row(s): 4`.
-
-Both scripts replace their output file on rerun and write it only after all checks pass, so bad input never creates or overwrites a result.
-
----
-
-### 1. `TreeHeight.R`
-
-This script defines the function `TreeHeight(degrees, distance)`, which converts the angle from degrees to radians and returns `distance × tan(radians)`. It prints the example `TreeHeight(37, 40)`, then applies the function to every row of `data/trees.csv`.
-
-**Input:** `data/trees.csv` (kept unchanged)
-
-**Output:** `results/TreeHts.csv`. The three input columns keep their original order, and `height_m` is added as the fourth column.
-
-**Run** (from the repository root):
+Both scripts reject wrong column names, non-finite numbers, a `Distance.m` outside (0, 100] m and an `Angle.degrees` outside (0, 90)°, and name the bad rows (for example `Invalid data row(s): 4`). They write results only after every check passes, so bad input never creates or overwrites a result. Each script keeps its own `TreeHeight()` and checks, because loading `TreeHeight.R` would run the whole script and rewrite its results (see Section 5).
 
 ```bash
-Rscript code/TreeHeight.R
-```
-
-or, in an R session started at the repository root:
-
-```r
-source("code/TreeHeight.R")
-```
-
-**Tests**
-
-**Test 1: Header and row count.**
-
-```bash
-wc -l results/TreeHts.csv          # Expected: 121 (header + 120 records)
-head -n 1 results/TreeHts.csv      # Expected: "Species","Distance.m","Angle.degrees","height_m"
-```
-
-**Test 2: Example call.** The script prints the result of `print(TreeHeight(37, 40))`:
-
-```text
-[1] 30.14216
-```
-
-**Test 3: Row order.** The first three output columns must equal the input table:
-
-```bash
-Rscript -e 'a <- read.csv("data/trees.csv"); b <- read.csv("results/TreeHts.csv"); stopifnot(isTRUE(all.equal(a, b[1:3]))); cat("PASS\n")'
-```
-
-**Test 4: Rerun.** A rerun replaces the result rather than adding rows:
-
-```bash
-Rscript code/TreeHeight.R
-wc -l results/TreeHts.csv          # Expected: still 121
-```
-
-**Test 5: One record checked independently.** Record 4 was calculated on a scientific calculator in degree mode (DEG). The calculator takes the angle in degrees directly, so this check does not reuse the script's degree-to-radian step:
-
-```bash
-sed -n 5p results/TreeHts.csv      # Line 5 = header + record 4
-```
-
-| Step | Value | Unit |
-| --- | --- | --- |
-| Species | Fraxinus excelsior | – |
-| `Distance.m` (input) | 34.6166691975668 | m |
-| `Angle.degrees` (input) | 23.336126555223 | ° |
-| Calculator (DEG): tan(23.336126555223) | 0.431416 | – |
-| Calculator: 34.6166691975668 × 0.431416 | 14.934 | m |
-| Script output `height_m` | 14.934175 | m |
-| Agreement | Difference < 0.001 | m |
-
-Why the value is plausible:
-
-- The angle is less than 45°, and tan(45°) = 1, so the height must be less than the distance (14.9 m < 34.6 m).
-- tan(23.3°) is about 0.43, so the height should be a little under half the distance.
-- A height of about 15 m is biologically plausible for an ash tree.
-
-**Test 6: Invalid measurement.** The script rejects it and does not overwrite the result. `TreeHeight.R` only reads `data/trees.csv`, so this test changes one value in that file and then restores it. The columns and the 120 rows are kept, so only the distance check can fail:
-
-```bash
-mkdir -p sandbox
-cp data/trees.csv sandbox/trees_backup.csv                # Back up the supplied file
-md5sum results/TreeHts.csv > sandbox/TreeHts_before.md5   # Fingerprint of the current result
-sed -i '5s/,34.6166691975668,/,-34.6166691975668,/' data/trees.csv   # Record 4 distance -> negative
-Rscript code/TreeHeight.R
-# Expected error: Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 4
-md5sum -c sandbox/TreeHts_before.md5                      # Expected: results/TreeHts.csv: OK (not overwritten)
-cp sandbox/trees_backup.csv data/trees.csv                # Restore the supplied file
-cmp data/trees.csv sandbox/trees_backup.csv && echo RESTORED
-```
-
----
-
-### 2. `get_TreeHeight.R`
-
-This script turns the fixed-dataset program into a general tool that safely handles any data in the same format. It reuses the input checks, the `TreeHeight()` function and the four-column output of `TreeHeight.R`. The function is copied rather than sourced, because sourcing `TreeHeight.R` would run that whole script and rewrite `results/TreeHts.csv`.
-
-**Input:** One readable CSV file given as a command-line argument, with the columns `Species`, `Distance.m` and `Angle.degrees`.
-
-**Output:** `results/<input file name>_treeheights.csv` (for example `results/trees_treeheights.csv`). The rows keep their original order, and `height_m` is added as the fourth column. The input file is never overwritten.
-
-**Run** (from the repository root):
-
-```bash
+Rscript code/TreeHeight.R                      # prints [1] 30.14216, the example TreeHeight(37, 40)
 Rscript code/get_TreeHeight.R data/trees.csv
+bash code/run_get_TreeHeight.sh                # runs get_TreeHeight.R on data/trees.csv and checks the 120 data rows
 ```
 
-**Tests**
+| Test | What I did | Result |
+| - | - | - |
+| Rows and header | Checked both outputs with `wc -l` and `head -n 1`, then ran again | 121 lines each (header + 120 records), unchanged after the rerun |
+| Row order | Compared the first three output columns with the input | Identical |
+| Both scripts agree | `diff results/TreeHts.csv results/trees_treeheights.csv` | Same file |
+| Known answer | Test file with distance 8 m and angle 45° | `height_m` = 8 |
+| Hand check | Record 4 (*Fraxinus excelsior*, 34.6166691975668 m, 23.336126555223°): calculator in degree mode gives tan = 0.431416, height 14.934 m | Script gives 14.934175 m, within 0.001 m |
+| Bad measurement (fixed input) | Made record 4's distance negative in a temporary copy | `Invalid data row(s): 4`; old result not overwritten; original `data/trees.csv` unchanged |
+| Bad measurement (any input) | Test file with a distance of −5 in row 2 | `Invalid data row(s): 2`; no result written |
+| Bad arguments and files | No argument, two arguments, missing file, wrong column names | Usage message or a clear error, then stops |
+| `browser()` debugging | Added a temporary `browser()` before the height line, started R with `R --vanilla --args data/trees.csv`, ran `source("code/get_TreeHeight.R")` and inspected record 4 | `trees$height_m[4]` matched the hand-calculated 14.934 m |
 
-**Test 1: Normal run with the full dataset.**
+<details>
+<summary>Commands to reproduce these tests</summary>
 
 ```bash
-wc -l results/trees_treeheights.csv     # Expected: 121
-```
+head -n 1 results/TreeHts.csv      # "Species","Distance.m","Angle.degrees","height_m"
+wc -l results/TreeHts.csv results/trees_treeheights.csv   # 121 each
+Rscript -e 'a <- read.csv("data/trees.csv"); b <- read.csv("results/TreeHts.csv"); stopifnot(isTRUE(all.equal(a, b[1:3]))); cat("PASS\n")'
+diff results/TreeHts.csv results/trees_treeheights.csv && echo SAME
+sed -n 5p results/TreeHts.csv      # record 4, checked by hand
 
-**Test 2: Known answer.** At 45°, the height equals the distance, so 8 m at 45° should give 8 m:
-
-```bash
 mkdir -p sandbox
 printf 'Species,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/tree_test.csv
-Rscript code/get_TreeHeight.R sandbox/tree_test.csv
-cat results/tree_test_treeheights.csv   # Expected: height_m = 8
-```
-
-**Test 3: Bad arguments.** Each run stops with a useful error:
-
-```bash
-Rscript code/get_TreeHeight.R                                  # Expected: usage message (no argument)
-Rscript code/get_TreeHeight.R data/trees.csv data/trees.csv    # Expected: usage message (extra argument)
-Rscript code/get_TreeHeight.R data/missing.csv                 # Expected: input file does not exist
-printf 'Name,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/bad_header.csv
-Rscript code/get_TreeHeight.R sandbox/bad_header.csv           # Expected: CSV must contain exactly: ...
-```
-
-**Test 4: Invalid measurement.** The script rejects it and writes no result. The header is correct, and only the distance in data row 2 is invalid:
-
-```bash
+Rscript code/get_TreeHeight.R sandbox/tree_test.csv && cat results/tree_test_treeheights.csv   # height_m = 8
 printf 'Species,Distance.m,Angle.degrees\nTest,8,45\nTest,-5,30\n' > sandbox/bad_distance.csv
 rm -f results/bad_distance_treeheights.csv
-Rscript code/get_TreeHeight.R sandbox/bad_distance.csv
-# Expected error: Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 2
+Rscript code/get_TreeHeight.R sandbox/bad_distance.csv    # ... Invalid data row(s): 2
 test -e results/bad_distance_treeheights.csv || echo "No result written"
+Rscript code/get_TreeHeight.R                             # usage message
+Rscript code/get_TreeHeight.R data/missing.csv            # input file does not exist
+printf 'Name,Distance.m,Angle.degrees\nTest,8,45\n' > sandbox/bad_header.csv
+Rscript code/get_TreeHeight.R sandbox/bad_header.csv      # CSV must contain exactly: ...
+
+# Fixed-input script: run in a temporary copy so data/trees.csv is never changed
+tmp=$(mktemp -d) && cp -R code data "$tmp"
+(
+  cd "$tmp" || exit 1
+  Rscript code/TreeHeight.R > /dev/null
+  cp results/TreeHts.csv TreeHts_before.csv
+  sed '5s/,34.6166691975668,/,-34.6166691975668,/' data/trees.csv > trees_edited.csv
+  mv trees_edited.csv data/trees.csv
+  Rscript code/TreeHeight.R                    # Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 4
+  cmp TreeHts_before.csv results/TreeHts.csv && echo "Result not overwritten"
+)
+rm -rf "$tmp"
+git status --short data/                       # no output
 ```
 
-**Test 5: Both scripts agree.** The two copies of `TreeHeight()` are checked by comparing their outputs for `data/trees.csv`:
-
-```bash
-diff results/TreeHts.csv results/trees_treeheights.csv && echo SAME
+</details>
 ```
 
-**Debugging with `browser()`.** Following the "Paranoid programming" approach, `browser()` was placed temporarily just before the height-calculation line. R was started from the repository root with `R --vanilla --args data/trees.csv`, and the script was run with `source("code/get_TreeHeight.R")`. In browser mode, the distance and angle of record 4 (34.6167 m, 23.3361°) were inspected, and the expected height (14.934 m) was calculated by hand. Pressing `n` ran the calculation line, and `trees$height_m[4]` matched the prediction. Pressing `c` continued the run, and `browser()` was then removed.
+### 3.3.2 Cultivation timing and plant species richness at Pound Hill
 
----
+> **Research question:** How does mean plant species richness per quadrat differ between cultivation in March, May and October?
 
-### 3. `run_get_TreeHeight.sh`
+`pound_hill_analysis.R` uses base R only. The blocked analysis is printed to the terminal, not saved.
 
-This script runs `get_TreeHeight.R` with `Rscript`, using `set -e` to stop on any error.
-
-**Input:** `data/trees.csv` (passed to `get_TreeHeight.R`)
-
-**Output:** `results/trees_treeheights.csv`
-
-**Run** (from the repository root):
-
-```bash
-bash code/run_get_TreeHeight.sh
-```
-
-**Tests**
-
-**Test 1: Non-empty result.**
-
-```bash
-test -s results/trees_treeheights.csv && echo PASS   # Expected: PASS
-```
-
----
-
-### Revisions and checks after feedback — 2026/11/22
-
-- Renamed the output column to `height_m`, as the practical specifies.
-- Kept `TreeHeight()` in both scripts, because each script must run on its own and no extra files are allowed. `diff` confirms that both outputs are identical (Test 5 of `get_TreeHeight.R`).
-- Changed `TreeHeight()` to return the height only; the example call prints it, as in the practical.
-- Tested `TreeHeight.R` and `get_TreeHeight.R` separately: row count, row order, rerun, an independently checked record and error messages.
-- Used the same header format at the top of both scripts, and added comments to explain decisions.
-
----
-
-## 3.2 Cultivation timing and plant species richness at Pound Hill
-
-> **Research question:** How does mean plant species richness per quadrat vary among the March, May and October cultivation treatments?
-
-### `pound_hill_analysis.R`
-
-This script calculates mean species richness for each plot and compares the three cultivation treatments. It uses base R only.
-
-**Input:** `data/pound_hill_data.csv` and `data/pound_hill_meta_data.csv`
-
-**Output:** Both files are recreated on every successful run.
-
-| Output file | Contents |
-| --- | --- |
-| `results/pound_hill_plot_richness.csv` | Mean species richness for each of the 12 plots (`Cultivation`, `Block`, `Plot`, `MeanRichness`). |
-| `results/pound_hill_plot_richness.pdf` | Plot-level richness for March, May and October: one labelled point per plot and a line for each treatment mean. |
-
-**Run** (from the repository root):
+| | File | Contents |
+| - | - | - |
+| Input | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | Species counts and metadata |
+| Output | `results/pound_hill_plot_richness.csv` | Mean species richness of the 12 plots (`Cultivation`, `Block`, `Plot`, `MeanRichness`) |
+| Output | `results/pound_hill_plot_richness.pdf` | One labelled point per plot, one mean line per treatment, grey lines joining the plots of each block |
 
 ```bash
 Rscript code/pound_hill_analysis.R
@@ -364,54 +290,207 @@ Rscript code/pound_hill_analysis.R
 
 **Method**
 
-1. **Reshape.** The species table is transposed (one column per quadrat), so it is transposed in base R and reshaped to long format (one row per species × quadrat) with `rep()`.
-2. **Blank counts.** The metadata defines blank counts as observed absences, so they are converted to zero. All counts must then be numeric, finite, non-negative integers.
-3. **Sampling unit.** Each quadrat is identified by `Cultivation`, `Block`, `Plot` and `Quadrat`.
-4. **Richness.** The number of species with `Count > 0` is calculated per quadrat and then averaged within each plot.
-5. **Replicates.** Plots hold unequal numbers of quadrats (3–6), so treatments are compared using plot-level means. This gives each of the four replicate plots per treatment equal weight.
+1. **Tidy the data.** Transpose the raw table and reshape it into long format with `rep()`. The metadata say a blank count means the species was absent, so blanks become 0. All counts must then be finite, non-negative whole numbers.
+2. **Calculate richness.** Each quadrat is identified by `Cultivation`, `Block`, `Plot` and `Quadrat`. Count the species with `Count > 0` in each quadrat, then average the quadrats within each plot. Plots have 3–6 quadrats, so using plot means gives each treatment's four plots equal weight.
+3. **Compare treatments within blocks.** Each of the four blocks (a–d) has one plot per treatment, so `lm(MeanRichness ~ Cultivation + Block)` analyses the 12 plot means without mistaking block differences for treatment effects. A Friedman test on the ranks within blocks backs this up.
 
-**Tests**
+| Check | What I did | Result |
+| - | - | - |
+| Data validation (built in) | The script checks count formats, quadrat IDs and the block design, and stops if any check fails | 41 species, 59 quadrats, 2,419 long-format rows (59 × 41), 12 plots, one plot per treatment in each block |
+| Figure matches CSV (built in) | The script re-reads the saved CSV and checks every point and mean line in the figure | `Figure check passed: 12 points and 3 treatment means match the CSV.` |
+| Independent recalculation | Recalculated each treatment's mean and range outside the script with `aggregate()` | Matches the table below |
+| Friedman by hand | Ranked plots within each block (1 = lowest): May ranks 3rd in all four blocks (rank sum 12); March and October both sum to 6; χ² = 12/48 × (12² + 6² + 6²) − 48 | χ² = 6.0, same as the script |
+| Figure by eye | Opened the PDF and compared it with the CSV | All 12 labels and values and the three mean lines match; each block's line peaks at May |
 
-**Test 1: Built-in validation.** The script stops with an error if any check fails. A successful run reports 41 species, 59 quadrats, 2,419 long-format rows (59 × 41) and 12 plots, one per treatment in each block.
+**Results**
 
-**Test 2: Figure matches the CSV (built in).** After writing the outputs, the script re-reads the saved CSV and stops if any plotted point or treatment-mean line differs from it. A successful run prints:
+| Treatment | Mean ± SE (model) | Range of plot means | Plots in figure |
+| - | - | - | - |
+| March | 7.81 ± 0.84 | 6.33–10.00 | P3, P5, P7, P10 |
+| May | 9.65 ± 0.84 | 7.40–11.60 | P2, P4, P9, P12 |
+| October | 7.61 ± 0.84 | 6.40–10.25 | P1, P6, P8, P11 |
 
-```text
-Figure check passed: 12 points and 3 treatment means match the CSV.
-  march    mean = 7.81; plot range = 6.33-10.00
-  may      mean = 9.65; plot range = 7.40-11.60
-  october  mean = 7.61; plot range = 6.40-10.25
-```
+Blocked analysis: Cultivation F(2, 6) = 1.77, p = 0.248; Block F(3, 6) = 1.41, p = 0.330; standard error of a difference between two treatment means = 1.19; Friedman χ² = 6.0, df = 2, p = 0.050.
 
-**Test 3: Independent check of the CSV.** The same summary is recalculated outside the script:
+**Interpretation** (full discussion in the comments at the end of `code/pound_hill_analysis.R`)
+
+- May cultivation gives the highest species richness, and May is highest in all four blocks.
+- But the blocked analysis finds no significant treatment effect (p = 0.25). May has about two more species, which is less than twice the standard error of the difference (1.19), so the evidence is weak.
+- If cultivation months were assigned to plots at random within blocks, the difference could be put down to cultivation timing. The metadata do not say how they were assigned, so this needs checking. The main limitation is low replication: four plots per treatment gives little power.
+
+<details>
+<summary>Commands to reproduce the independent checks</summary>
 
 ```bash
 Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); stopifnot(nrow(x) == 12L, all(table(x$Cultivation) == 4L)); print(aggregate(MeanRichness ~ Cultivation, x, mean)); print(aggregate(MeanRichness ~ Cultivation, x, range))'
+Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); r <- t(sapply(split(x, x$Block), function(b) rank(b$MeanRichness[match(c("march", "may", "october"), b$Cultivation)]))); colnames(r) <- c("march", "may", "october"); print(r); print(colSums(r))'
 ```
 
-| Treatment | Mean | Range of plot means | Plots in figure |
-| --- | --- | --- | --- |
-| March | 7.81 | 6.33–10.00 | P3, P5, P7, P10 |
-| May | 9.65 | 7.40–11.60 | P2, P4, P9, P12 |
-| October | 7.61 | 6.40–10.25 | P1, P6, P8, P11 |
+</details>
 
-Opening `results/pound_hill_plot_richness.pdf` confirmed that all 12 plot labels and their values agree with the CSV, and that the three lines lie at 7.81, 9.65 and 7.61.
+## 3.4 Assignment 4 — in-class practice scripts
 
-**Interpretation:** See the comments at the end of `code/pound_hill_analysis.R`.
+- Each table row is one script: the idea it shows, and the commands I used to check it, with the results.
+- All paths are relative to the project root. Scripts create `results/` before writing to it.
+- Section 4 lists the files each script reads and writes.
+
+### 3.4.1 Shell scripts
+
+| Script | What it shows | How I checked it |
+| - | - | - |
+| `boilerplate.sh` | Basic script layout: shebang line, header comment, and `echo -e` turning `\n` into a newline | `bash code/boilerplate.sh` → blank line, `This is a shell script! `, blank line; exit status 0 (no explicit `exit`, so the status comes from the last `echo`) |
+| `MyExampleScript.sh` | Assigning variables (`MSG1="Hello"`, `MSG2=$USER`) and the `USER` environment variable | `bash code/MyExampleScript.sh` → `Hello <your user name>` twice, then a blank line; `env -u USER bash code/MyExampleScript.sh` → just `Hello ` (`USER` is unset in some containers) |
+| `variables.sh` | Special parameters (`$#`, `$0`, `$*`, `$1`, `$2`), reading input with `read -r -p`, and integer arithmetic with `$((a + b))` | `bash code/variables.sh one two`, then type a string and two integers. To repeat it exactly: `printf 'new value\n3 4\n' \| bash code/variables.sh one two` → 2 parameters, `Now MY_VAR is: new value`, sum 7. With no input (`< /dev/null`) it uses the defaults 0 and 0; `read -r` keeps backslashes. The script assumes integer input |
+| `CheckLabel.sh` | Checks the number of arguments, then the value with `[[ … ]]` joined by `&&`; errors go to stderr | `bash code/CheckLabel.sh oak` → `Selected species: oak`, status 0 (same for `pine`); `Oak` (case-sensitive) or `birch` → `Unknown label: …`, status 1; no argument or two arguments → usage message, status 2 |
+| `CountLines.sh` | Command substitution `$(wc -l < "$1")`; checks the argument and file before using them | `bash code/CountLines.sh data/trees.csv` → 121 lines; `data/fasta/407228326.fasta` → 27 lines (`wc -l` counts newlines and the last line has none; `awk 'END {print NR}'` gives 28); missing argument or file → error on stderr, status 1 |
+| `ConcatenateTwoFiles.sh` | Redirection: `>` empties the output and writes file 1, `>>` appends file 2; `-ef` refuses an output that is also an input (otherwise `>` would empty it before `cat` reads it) | `bash code/ConcatenateTwoFiles.sh data/bootcamp_observations.csv data/bootcamp_observations_boundary.csv results/observations_combined.csv` → 10 lines (5 + 5), first 5 identical to file 1 and last 5 to file 2, still 10 after a rerun; output same as an input, or a missing input → error, status 1, and `git status --short data/` shows nothing; joining the two FASTA files gives only one line starting with `>`, because the first file has no final newline |
+| `tiff2_png.sh` | A `for` loop over `data/*.tif`, `basename` to change the extension, and ImageMagick to write `results/<name>.png`; checks for the converter, the inputs and each conversion | `bash code/tiff2_png.sh` → `Converting data/example_image.tif`, status 0; `results/example_image.png` is a 64 × 48 PNG |
+
+**Checking `tiff2_png.sh`.** I tested the script on `.tif` files and it converted them to PNG in `results/`. To keep `data/` tidy, I did not commit any images, so in a fresh clone the script stops with `Error: no .tif files found in data/.` (status 1); to run it, put your own `.tif` files in `data/` first.
+
+### 3.4.2 Python scripts
+
+| Script | What it shows | How I checked it |
+| - | - | - |
+| `boilerplate.py` | Program template: module docstring, `main(argv)`, and `sys.exit(status)` under `if __name__ == "__main__":` | `python3 code/boilerplate.py` → `This is a boilerplate`, status 0. Importing it runs nothing: `python3 -B -c 'import sys; sys.path.insert(0, "code"); import boilerplate'` prints nothing |
+| `MyExampleScript.py` | A first function: `foo(x)` squares `x` with `x *= x` and prints it | `python3 code/MyExampleScript.py` → `4` (the script calls `foo(2)`) |
+| `loops.py` | `for` over `range()` and a list, running totals, and a `while` loop | `python3 code/loops.py \| wc -l` → 116 lines = 5 + 6 + 5 + 100: `range(5)` prints 0–4, the list has 6 items, the totals are 0, 1, 12, 123, 1234, and the `while` loop counts to 100 |
+| `cfexercises1.py` | Functions with conditions and loops: square root (`foo_1`), larger value (`foo_2`), sorting three numbers (`foo_3`), and factorials by for loop, recursion and while loop (`foo_4`–`foo_6`) | `python3 code/cfexercises1.py` → `foo_1(9) = 3.0`, `foo_2(10, 5) = 10`, `foo_3(9, 3, 6) = [3, 6, 9]`, `foo_4(5) = foo_5(5) = foo_6(5) = 120`, and the extra `foo_5(10) = 3628800` |
+| `cfexercises2.py` | Controlling loops with `if`/`elif`, `while` conditions and `break` | `python3 code/cfexercises2.py \| grep -c '^hello$'` → 35, matching my hand count 4 + 4 + 14 + 5 + 8 (`hello_1(12)`, `hello_2(12)`, `hello_3(3, 17)`, `hello_4(0)`, `hello_5(12)`). `hello!` prints only 0–5, because `hello_6` breaks at y = 6 |
+| `control_flow.py` | `if`/`elif`/`else`, `for` loops and early `return`: even or odd, the largest divisor from 2–5, and primes | `python3 code/control_flow.py` → `22 is Even!`, `33 is Odd!`, `The largest divisor of 120 is 5`, `No divisor found for 121!` (121 = 11 × 11), then the 25 primes from 2 to 100 |
+| `test_control_flow.py` | Doctests in the docstring of `even_or_odd()`, including a negative number | `python3 -B code/test_control_flow.py` → `22 is Even!`, `33 is Odd!`, doctests pass silently. `python3 -B -m doctest -v code/test_control_flow.py \| tail -n 3` → `3 tests in 3 items.`, `3 passed.`, `Test passed.` |
+| `using_name.py` | `__name__` is `"__main__"` when run directly and the module name when imported | `python3 code/using_name.py` → `This program is being run by itself!`, `This module's name is: __main__`. `python3 -B -c 'import sys; sys.path.insert(0, "code"); import using_name'` → `I am being imported from another script/program/module!`, `This module's name is: using_name` |
+| `sysargv.py` | Command-line arguments in `sys.argv`; the first item is the script name | `python3 code/sysargv.py var1 var2 var3` → 4 arguments: `['code/sysargv.py', 'var1', 'var2', 'var3']`. No arguments → 1 (just the script name). `"two words"` in quotes counts as one argument |
+| `debugme.py` | Handling errors with `try`/`except`/`else`, and debugging with `pdb` | `python3 code/debugme.py \| tail -n 5` → `buggyfunc(20) returned: 20.0` (every division from y = 19 down to 1 works, so it returns 20 / 1); `buggyfunc(1)` and `buggyfunc(0)` return `None`. The division-by-zero messages are intended. `pdb` use is below the table |
+| `observations_practice.py` | Validates observation records and returns `(known total, number of missing counts)` per site; tells a missing count from an observed 0, skips exact duplicates, and validates every row before counting | `python3 code/observations_practice.py` → `A: (2, 1)`, `B: (0, 0)`, matching my hand count from `data/bootcamp_observations.csv`. Run from `code/` (no `data/` there) → `Error: Input file not found: data/bootcamp_observations.csv`, status 1 |
+| `test_observations_practice.py` | `assert` tests, as in the course, for normal input, boundary cases, expected failures and unchanged input, plus my hand-worked site E. Failures tested: `+2`, ` 2`, `02`, `1_000`, `2.0`, a blank site or date, `"2"` and `"02"` for the same site and date, a missing file and wrong column names | `python3 -B code/test_observations_practice.py` → `All observation checks passed.` `python3 -B -O code/test_observations_practice.py` → refuses to run, status 1 (`-O` strips `assert`, so the tests would pass without checking anything) |
+
+**Debugging `debugme.py` with `pdb`.** I ran `python3 -m pdb code/debugme.py` with the breakpoint `b 24, y == 0`, which pauses at `z = x / y` only when the divisor is 0; `p x, y, i` showed `(20, 0, 19)`. Inside `buggyfunc()`, press `c` rather than `q`: the `bdb.BdbQuit` raised by `q` is caught by `except Exception`, so the program leaves the debugger and keeps running.
+
+**Shared rules for the observation exercise.** The Python and R versions follow the same rules. The file must have exactly the columns `site`, `date` and `count`, in that order. Site and date cannot be empty or only spaces. An empty `count` means missing; any other value must match `^(0|[1-9][0-9]*)$`, so `+2`, ` 2`, `02` and `1_000` are errors. A record with the same site, date and count as an earlier one is skipped. R also rejects counts above 2,147,483,647 (its integer limit); Python has no such limit.
+
+### 3.4.3 R scripts
+
+| Script | What it shows | How I checked it |
+| - | - | - |
+| `boilerplate.R` | Defining and calling a function; `class()` to check argument types | `Rscript code/boilerplate.R` → `my_function(1, 2)` prints the type of both arguments (`numeric`) and returns `1 2`; `my_function("riki", "Tiki")` prints type `character` and returns the two strings (the calls are at the top level of the script, so `Rscript` prints the return values) |
+| `basic_io.R` | Reading data with `read.csv()`, writing with `write.csv()` and `write.table()`, appending (`append = TRUE`), and controlling row and column names | `Rscript code/basic_io.R`, then `wc -l < results/MyData.csv` → 120: every write without `append = TRUE` overwrites the file, and the last `write.table()` writes 120 space-separated lines with row names and no header; the first line is `"1" "Populus tremula" 31.6658337740228 41.2826361937914`. Run from `code/` → `Error: Input file not found: data/trees.csv …`, status 1 |
+| `control_flow.R` | `if`/`else`, `for` and `while` loops, and controlling loops with `next`, `break` and a safety limit | `Rscript code/control_flow.R \| grep -c 'squared is'` → 10 (i = 1–10); `odd i` appears only for 1, 3, 5, 7, 9 (`next` skips even numbers); the last three lines run from `Reached i >= 9, breaking loop` to `Script complete!`. `z` comes from `runif(1)` with no seed set, so the `z <= 0.5` or `z > 0.5` line can differ between runs |
+| `r_conditionals.R` | Conditionals inside functions with default arguments: odd or even, power of 2, prime | `Rscript code/r_conditionals.R` → 6 is even, 7 is odd; 4 is a power of 2, 5 is not; 2, 3 and 13 are prime, 10 is composite. `is.power2()` checks whether `log2(n)` is a whole number; `is.prime()` handles 0, 1 and 2 first, so the edge case n = 2 is also correct |
+| `break.R` | Leaving a loop with `break` | `Rscript code/break.R` → 10 lines, from `i equals 0` to `i equals 9`; the loop stops when i reaches 10 |
+| `next.R` | Skipping an iteration with `next` | `Rscript code/next.R` → 1, 3, 5, 7, 9, one per line (the even numbers in 1–10 are skipped) |
+| `try.R` | Catching errors with `try()` so the remaining replicate simulations carry on after one fails; the histogram is saved to `results/try_population.pdf` | `Rscript code/try.R 2>/dev/null \| tail -n 2` → `Runs caught as errors: 7 11 13`, `Successful runs: 12 of 15`; the five `Error in doit(popn) : Couldn't calculate mean: too few unique values!` lines on standard error are triggered on purpose and caught by `try()`; `set.seed(1345)` makes the results reproducible |
+| `browse.R` | Interactive debugging with `browser()` inside a loop that simulates exponential growth | Needs an interactive R session; how to start it and what to check are below the table. `Rscript code/browse.R` does not pause and only prints trace output (`Called from: Exponential()`, `debug: …`); the plot is written to `Rplots.pdf` in the project root (ignored by `.gitignore`) |
+| `observations_practice.R` | R version of the observation-records exercise: `read_observations()` checks the columns, blank sites and dates, and the count format, and reports the line number of any bad row; `summarise_observations()` removes duplicate records and reports `total_known` and `missing_count` per site; base R plots the sum of known counts per site; the input is read once, only through the validating reader | `Rscript code/observations_practice.R \| tail -n 1` → `All checks passed. Figure saved to results/observations_known_totals.pdf`. The built-in checks require A `(2, 1)`, B `(0, 0)`, C `(NA, 2)`, D `(0, 0)` (same as the Python version) and confirm that invalid files are rejected with an error naming the count value (`found '-1'`); in the figure, site C is labelled `NA (all missing)` instead of being drawn as 0. Run from `code/` → `Error: Input file not found: …`, status 1 |
+| `data_wrang.R` | Transposing the Pound Hill data, then turning the wide table into a long one with `reshape2::melt()` | `Rscript code/data_wrang.R > /dev/null`, then `wc -l < results/pound_hill_long.csv` → 2420 (header + 59 quadrats × 41 species); line 2 is `"october","a","1","Q1","Achillea millefolium",4` |
+| `data_wrang_tidy.R` | The same conversion with `tidyr::pivot_longer()` and `dplyr`; stops with a clear message if a package or the input file is missing | `Rscript code/data_wrang_tidy.R \| tail -n 1` → `Saved results/pound_hill_long_tidy.csv with 2419 rows` |
+
+**Debugging `browse.R` interactively.** `browser()` needs an interactive R session. Start R from the project root and load the script with `source()`. R pauses at each generation in the growth loop. Here’s my debugging session and the variables I checked:
+
+```text
+$ R --vanilla
+> source("code/browse.R")
+Called from: Exponential()
+Browse[1]> ls()         # [1] "N" "N0" "generations" "r" "t": the variables inside Exponential()
+Browse[1]> t            # [1] 2: the first stop is generation 2
+Browse[1]> N[t]         # [1] 2.718282, i.e. N[1] * exp(r) with N0 = 1 and r = 1
+Browse[1]> c            # continue to the next stop
+Called from: Exponential()
+Browse[1]> t            # [1] 3
+Browse[1]> N[t]         # [1] 7.389056 = exp(2)
+Browse[1]> n            # run the next line: debug at code/browse.R#32: N[t] <- N[t - 1] * exp(r)
+Browse[2]> Q            # leave the browser and stop the run
+> q()
+```
+
+At each pause, `N[t]` should equal `exp(t - 1)`. I got `2.718282` at `t = 2` and `7.389056` at `t = 3`. Use `n` to step through one line, `c` to continue to the next pause, and `Q` to quit the debugger and stop the run. If you press `c` at every pause, the loop finishes and the script draws the plot.
+
+## 4. Input and output files of each program
+
+- All paths are relative to the project root. 
+- “Prints only” means the script writes to the terminal without saving a file.
+
+| File | Reads | Creates |
+| - | - | - |
+| **Assignment 1** | | |
+| `unixPrac1.txt` | `407228326.fasta`, `407228412.fasta` and `e_coli.fasta` in `data/fasta/` | Prints only |
+| `tabtocsv.sh` | A tab-separated file, e.g. `data/tab-example.tsv` | `results/<file name>.csv`, e.g. `results/tab-example.tsv.csv` |
+| `csvtospace.sh` | A comma-separated file, e.g. `data/temperatures/1800.csv` | `results/<file name>.txt`, e.g. `results/1800.csv.txt` |
+| **Assignment 2** | | |
+| `clean_silwood_trees.py` | `data/silwood_trees_raw.csv` (see `data/silwood_trees_metadata.md` for validation rules) | `results/silwood_trees_clean.csv`, `results/silwood_tree_issues.csv`, `results/oak_species_counts.csv` |
+| `test_silwood_trees.py` | Test records created in a temporary directory | Temporary files only, removed after testing |
+| **Assignment 3** | | |
+| `TreeHeight.R` | `data/trees.csv` | `results/TreeHts.csv` |
+| `get_TreeHeight.R` | A CSV file passed as an argument, e.g. `data/trees.csv` | `results/<input name>_treeheights.csv` |
+| `run_get_TreeHeight.sh` | `data/trees.csv` via `get_TreeHeight.R` | `results/trees_treeheights.csv` |
+| `pound_hill_analysis.R` | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | `results/pound_hill_plot_richness.csv`, `results/pound_hill_plot_richness.pdf` (block analysis results are printed only) |
+| **Assignment 4** | | |
+| `variables.sh`, `CheckLabel.sh`, `CountLines.sh`, `sysargv.py` | Command-line arguments. `variables.sh` also reads two lines of keyboard input. `CountLines.sh` reads the file named in its argument. | Prints only |
+| `ConcatenateTwoFiles.sh` | Two files (arguments 1 and 2) | The output file named in argument 3 and its directory if needed |
+| `tiff2_png.sh` | `data/*.tif` (no image included; the test creates one in a temporary copy of the repository, see Section 3.4.1) | `results/<image name>.png` |
+| `observations_practice.py` | `data/bootcamp_observations.csv` | Prints only |
+| `test_observations_practice.py` | `data/bootcamp_observations.csv`, `…_boundary.csv`, `…_invalid.csv` | One temporary test file, removed after testing |
+| `basic_io.R` | `data/trees.csv` | `results/MyData.csv` |
+| `try.R` | Simulated data (`rnorm`, seed `1345`) | `results/try_population.pdf` |
+| `browse.R` | – | One plot. `Rscript` saves it as `Rplots.pdf` in the project root (ignored by Git). Interactive R displays it in the plot window. |
+| `observations_practice.R` | `data/bootcamp_observations.csv`, `…_boundary.csv`, `…_invalid.csv` | `results/observations_known_totals.pdf` |
+| `data_wrang.R` | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | `results/pound_hill_long.csv` |
+| `data_wrang_tidy.R` | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | `results/pound_hill_long_tidy.csv` |
+| Other practice scripts (16) — `boilerplate.sh`, `MyExampleScript.sh`, `boilerplate.py`, `MyExampleScript.py`, `loops.py`, `cfexercises1.py`, `cfexercises2.py`, `control_flow.py`, `test_control_flow.py`, `using_name.py`, `debugme.py`, `boilerplate.R`, `control_flow.R`, `r_conditionals.R`, `break.R`, `next.R` | – | Prints only |
 
 ---
 
-### Revisions and checks after feedback — 2026/11/25
 
-- Removed the two abundance outputs from the output table; the script writes only the richness CSV and PDF.
-- Replaced the `tidyr::pivot_longer()` description with the base-R method the script uses (`t()` and `rep()`).
-- Added a figure check to the script. It re-reads the saved CSV and stops if the plotted points or treatment means differ from it. It was tested by deliberately altering the CSV, the mean line and the plotted points; each change stopped the script with an error.
-- Recorded the treatment means and ranges from the CSV and compared them with the figure (Test 3).
-- Added comments to the script to explain key decisions.
 
-### AI use
+## 5. Changes after the formative feedback, and how I checked them
 
+- Each row pairs a point from `Feedback/` with the change (commit) and its check. 
+- I re-ran all checks from the root of a fresh `git clone` (FASTA commands from `code/`).
+
+### Assignment 1 — UNIX and Bash
+
+Feedback: `Feedback/assignment-1-2026.md` (assessed snapshot `18f27a3`)
+
+| Feedback | Change (commit) | Check |
+| --- | --- | --- |
+| Explain the method for Q2–Q5, not only the result. | Explained each step and result for Q2–Q5 in `unixPrac1.txt`, including why lines are joined before motif counting and why ambiguity codes count towards length but not the AT/GC ratio (`11abfbc`). | All five results are unchanged (78258; 4686137; 21968; 0.969228). Unjoined lines give 20853 `ATGC` matches, missing 1115 that span line breaks. Only two ambiguity codes occur (one R, one Y). |
+| Run the converters from the repository root, not `code/`. | Both scripts now write to `results/` when run from the root; `tabtocsv.sh` uses `#!/bin/sh`, like `csvtospace.sh`. Updated the README examples, adding a loop over the four temperature files (`11abfbc`, `4146a69`). | In a fresh clone, the README commands create `results/`, and all five outputs match a direct `tr` substitution (`cmp`). Both scripts pass `bash -n` and `dash -n`. |
+| Provide `data/tab-example.tsv` with an empty field; record output checks, not only syntax checks. | Added the TSV (`c4f32a0`) and `cmp` output checks to the README (`4146a69`). | The output ends with `4,,6`; the empty field is preserved. |
+| Ignore results; keep generated and disposable files out of the repository. | Ignored `/results/` and `/sandbox/` (`a5dd442`), then editor, Python-cache and R-session files (`11abfbc`, `4146a69`). Untracked `sandbox/` (`c4f32a0`) and later added revised classroom scripts to `code/` (`95ab125`, `bf6ac2f`, `e239810`). | `git ls-files results sandbox` returns nothing; `git status` stays clean after all scripts have run. |
+| Document any help used. | Added an AI-use note to each assignment (`11abfbc`, `4146a69`). | – |
+
+### Assignment 2 — Silwood tree survey
+
+Feedback: `Feedback/assignment-2-2026.md` (assessed snapshot `9c88a8f`)
+
+| Feedback | Change (commit) | Check |
+| --- | --- | --- |
+| Restore the supplied `silwood_trees_metadata.md`. | Restored it (`4146a69`). | `cmp` finds it identical to the course copy (MulQuaBio/MQB, `content/data/`). `silwood_trees_raw.csv` also matches and has never been edited. |
+| Test one valid and one invalid record through `process_records()` and `summarise_oaks()`. | Added `test_rejected_oak_excluded_from_summary`: two *Quercus robur* records, one with `distance_m = 0`; it checks the cleaned list, the issue row and a robur count of 1. Added `test_oak_near_match_rejected`: genus `Quercuss` is rejected and not counted (`3d7cbbd`). | `Ran 23 tests ... OK` (previously 21). |
+| Document what the cleaner does, its root-level commands and its three outputs; test the commands in a fresh clone. | Rewrote the section: input/output table, workflow pseudocode, test notes and root-level commands (`4146a69`). | Both commands run unmodified in a fresh clone. The cleaner writes the three outputs: 24 accepted and 12 rejected rows from 36 records, and oak counts of petraea 4 and robur 4. `data/` is unchanged. |
+
+### Assignment 3 — R practicals
+
+Feedback: `Feedback/assignment-3-2026.md` (assessed snapshot `4146a69`)
+
+| Feedback | Change (commit) | Check |
+| --- | --- | --- |
+| Check record 4 independently of the program's formula. | README Test 5 now reports a degree-mode calculator check with inputs, units and agreement (`0637457`). | 34.6166691975668 m × tan(23.336126555223°) = 34.6166691975668 × 0.431416 = 14.934 m; the script gives 14.934175 m (difference < 0.001 m). |
+| Isolate the fixed-route invalid test, which failed on row count ("Expected 120 tree records") rather than on the bad measurement. | Errors in both scripts now name the failing rows. README Test 6 keeps all 120 rows and columns, negates only record 4's distance and then restores the file (`0637457`). | The run stops with `Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 4`. `md5sum -c` shows the existing result is not overwritten; with no prior result, none is created. `get_TreeHeight.R` Test 4 reports `Invalid data row(s): 2` and writes no file. |
+| Make section 3.2 match the script (the README cited `tidyr::pivot_longer()` and abundance outputs). | Section 3.2 now describes the base-R route (`t()`, `rep()`) and lists only the richness CSV and PDF (`c776b03`). | The script uses base R only; a fresh run writes only these two files. |
+| Compare the plotted points and means with the CSV. | Added a figure check that re-reads the saved CSV and stops if any of the 12 points or 3 mean lines differ (`c776b03`). | The check passes on a fresh run (means: March 7.81, May 9.65, October 7.61), and Test 3 reproduces these with `aggregate()`. Altering the CSV, one point or one mean line in a copy of the script raised an error in each case. The PDF shows the same 12 labels and 3 lines. |
+| Use comments to explain decisions; avoid repeated calculations. | Added headers and decision comments to the three R scripts and defined `months` once in `pound_hill_analysis.R`. Kept `TreeHeight()` in both tree-height scripts, since sourcing `TreeHeight.R` would rerun it and overwrite its output. Dropped `quote = FALSE` from `TreeHeight.R`, so both scripts write identical CSVs (`0637457`, `c776b03`). | `diff` finds `results/TreeHts.csv` and `results/trees_treeheights.csv` identical (at `4146a69` they differed in quoting). |
+
+I made two commits for the Assignment 3 revisions. The first covered tree height and Section 3.1 (22 November 2026, 0637457), and the second covered Pound Hill and Section 3.2 (25 November 2026, c776b03).
+
+## 6. AI use
 | Date | Tool | What I used it for | How I checked the result |
 | --- | --- | --- | --- |
-| 20–23 Oct 2026 | ChatGPT | Explaining R error messages and concepts, including why plots, not quadrats, are the replicates (pseudoreplication). | Checked one plot's mean richness by hand. |
-| 25 Nov 2026 | Claude | Aligning README section 3.2 with the script after feedback and adding the figure check to `pound_hill_analysis.R`. | Reran the script and compared the printed means with the CSV and the PDF. |
+| 8–9 Oct 2026 | ChatGPT | Tutoring on Python syntax and rules (Assignment 1). | Checked against the MQB notes and by running the code. |
+| 16 Oct 2026 | ChatGPT | Tutoring on handling error messages, testing inputs and wording the README (Assignment 2). | Checked against the MQB notes and by running the code. |
+| 20–23 Oct 2026 | ChatGPT | Explaining R error messages and concepts, including why plots, not quadrats within a plot, are the independent replicates, and why treating quadrats as replicates is pseudoreplication. | Calculated one plot's mean species richness by hand. |
+| 20–27 Nov 2026 | ChatGPT | I used ChatGPT for step-by-step explanations of shell commands, R, command-line checks and interactive debugging, and I used Codex to help me adapt classroom examples, run checks, record results and understand how to verify the tree-height diagnostics and the Pound Hill figure against the raw data. | Ran the relevant scripts and checks locally and compared the outputs with the expected results. |
+
+---
+
+## 7. Clean-Clone Check

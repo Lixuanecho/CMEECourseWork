@@ -1,13 +1,36 @@
-# Wrangle the Pound Hill dataset.
-# Run from the coursework project root with:
-# Rscript code/data_wrang.R
+# Language: R
+# Script: data_wrang.R
+# Des: Wrangle the Pound Hill dataset from wide to long form with reshape2::melt()
+#      (the course's data-wrangling example).
+# Usage: Rscript code/data_wrang.R   (run from the coursework project root)
+# Input: data/pound_hill_data.csv, data/pound_hill_meta_data.csv
+# Output: results/pound_hill_long.csv
+# Requires: the reshape2 package, installed once with install.packages("reshape2")
+# Date: Nov 2026
+# Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
+
+# Stop with a clear message if the package or an input file is missing,
+# instead of failing part-way with R's own error.
+if (!requireNamespace("reshape2", quietly = TRUE)) {
+  stop("Package 'reshape2' is not installed. Install it once with ",
+       "install.packages(\"reshape2\").", call. = FALSE)
+}
+
+data_path <- "data/pound_hill_data.csv"
+metadata_path <- "data/pound_hill_meta_data.csv"
+for (path in c(data_path, metadata_path)) {
+  if (!file.exists(path)) {
+    stop("Input file not found: ", path,
+         " (run this script from the project root)", call. = FALSE)
+  }
+}
 
 # Load the data ----------------------------------------------------------
 # The first rows describe the sampling design, so do not use one as a header yet.
-MyData <- as.matrix(read.csv("data/pound_hill_data.csv", header = FALSE))
+MyData <- as.matrix(read.csv(data_path, header = FALSE))
 
 # The metadata file does have a header and uses semicolons as separators.
-MyMetaData <- read.csv("data/pound_hill_meta_data.csv", header = TRUE, sep = ";")
+MyMetaData <- read.csv(metadata_path, header = TRUE, sep = ";")
 
 # Inspect the data -------------------------------------------------------
 head(MyData)
