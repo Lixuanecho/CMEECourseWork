@@ -4,7 +4,8 @@
 Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
 Script: test_observations_practice.py
 Description: Check parse_count and summarise_site with normal, boundary, failure and unchanged-input cases
-Usage: python3 code/test_observations_practice.py
+Usage: python3 -B code/test_observations_practice.py
+       (prints one line when every check passes; do not use python3 -O)
 Date: Nov 2026
 """
 
@@ -13,6 +14,18 @@ import tempfile
 
 from observations_practice import load_observations, parse_count, summarise_site
 
+# These checks are plain assert statements, as in the course exercise.
+# python3 -O removes assert statements, so the script would "pass" without
+# checking anything; refuse to run in that case.
+if not __debug__:
+    raise SystemExit("Error: run these tests without -O; it disables assert statements.")
+
+# The file checks below use paths from the project root
+for data_file in ("data/bootcamp_observations.csv",
+                  "data/bootcamp_observations_boundary.csv",
+                  "data/bootcamp_observations_invalid.csv"):
+    if not os.path.isfile(data_file):
+        raise SystemExit(f"Error: {data_file} not found; run the tests from the project root.")
 
 
 # Checks for parse_count
@@ -168,3 +181,7 @@ new_rows = [
     {"site": "F", "date": "2026-11-01", "count": "9"},
 ]
 assert summarise_site(new_rows, "E") == (10, 1)
+
+
+# Every assert above passed (a failure would have stopped the script)
+print("All observation checks passed.")
