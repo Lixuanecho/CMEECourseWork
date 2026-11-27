@@ -19,7 +19,7 @@
 
 6. [AI use](#6-ai-use)
 
-7. [Clean clone check](#7-final-check-of-the-whole-portfolio)
+7. [Clean clone check](#7-clean-clone-check)
 
 ---
 
