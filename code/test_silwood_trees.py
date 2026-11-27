@@ -28,7 +28,7 @@ class TestValidation(unittest.TestCase):
     """Exercise every field and rejection category in the metadata."""
 
     def check_reasons(self, expected, **changes):
-        cleaned, reasons = trees.validate_record(make_record(**changes), 2, set())
+        cleaned, reasons = trees.validate_record(make_record(**changes), set())
         self.assertIsNone(cleaned)
         self.assertEqual(reasons, expected)
 
@@ -37,7 +37,7 @@ class TestValidation(unittest.TestCase):
                           genus=" quERCUS ", species=" ROBUR ")
         original = row.copy()
         accepted_ids = set()
-        cleaned, reasons = trees.validate_record(row, 2, accepted_ids)
+        cleaned, reasons = trees.validate_record(row, accepted_ids)
         self.assertEqual(reasons, [])
         self.assertEqual(cleaned, make_record(location="Nash's Field",
                                              distance_m="12.5", angle_degrees="35.0"))
@@ -48,7 +48,7 @@ class TestValidation(unittest.TestCase):
         for location in ("Silwood Bottom", "Nash's Field", "Manor House", "Reactor Wood"):
             with self.subTest(location=location):
                 cleaned, reasons = trees.validate_record(
-                    make_record(location=f" {location.swapcase()} "), 2, set())
+                    make_record(location=f" {location.swapcase()} "), set())
                 self.assertEqual(reasons, [])
                 self.assertEqual(cleaned["location"], location)
 
@@ -58,7 +58,7 @@ class TestValidation(unittest.TestCase):
                                ("Fagus", "sylvatica"), ("Fraxinus", "excelsior")):
             with self.subTest(genus=genus, species=species):
                 cleaned, reasons = trees.validate_record(
-                    make_record(genus=genus.swapcase(), species=species.upper()), 2, set())
+                    make_record(genus=genus.swapcase(), species=species.upper()), set())
                 self.assertEqual(reasons, [])
                 self.assertEqual((cleaned["genus"], cleaned["species"]), (genus, species))
 
@@ -92,7 +92,7 @@ class TestValidation(unittest.TestCase):
         for value in ("0.001", "100"):
             with self.subTest(value=value):
                 accepted, reasons = trees.validate_record(
-                    make_record(distance_m=value), 2, set())
+                    make_record(distance_m=value), set())
                 self.assertEqual(reasons, [])
                 self.assertIsNotNone(accepted)
 
@@ -103,7 +103,7 @@ class TestValidation(unittest.TestCase):
         for value in ("0.001", "89.999"):
             with self.subTest(value=value):
                 accepted, reasons = trees.validate_record(
-                    make_record(angle_degrees=value), 2, set())
+                    make_record(angle_degrees=value), set())
                 self.assertEqual(reasons, [])
                 self.assertIsNotNone(accepted)
 
@@ -125,13 +125,13 @@ class TestValidation(unittest.TestCase):
         ], genus="Acer", species="robur", distance_m="0", angle_degrees="bad")
 
     def test_duplicate_id(self):
-        cleaned, reasons = trees.validate_record(make_record(), 3, {"ST001"})
+        cleaned, reasons = trees.validate_record(make_record(), {"ST001"})
         self.assertIsNone(cleaned)
         self.assertEqual(reasons, ["duplicate record_id"])
 
     def test_duplicate_and_other_error(self):
         cleaned, reasons = trees.validate_record(
-            make_record(location="Unknown"), 3, {"ST001"})
+            make_record(location="Unknown"), {"ST001"})
         self.assertIsNone(cleaned)
         self.assertEqual(reasons, ["duplicate record_id", "invalid location"])
 

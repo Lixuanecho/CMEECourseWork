@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import csv
+import math
+import re
 from pathlib import Path
 from typing import Iterable
 
@@ -23,6 +25,29 @@ INPUT_FIELDS = [
 ISSUE_FIELDS = ["source_row", "record_id", "reasons"]
 OAK_COUNT_FIELDS = ["species", "count"]
 
+# Permitted values from the metadata. They are built once, when the module is
+# imported, rather than on every call to validate_record(). Each lookup maps a
+# case-folded spelling to the canonical spelling that is written out.
+LOCATIONS = ("Silwood Bottom", "Nash's Field", "Manor House", "Reactor Wood")
+TAXA = {
+    "Quercus": ("robur", "petraea"),
+    "Acer": ("pseudoplatanus",),
+    "Betula": ("pendula",),
+    "Fagus": ("sylvatica",),
+    "Fraxinus": ("excelsior",),
+}
+LOCATION_LOOKUP = {name.casefold(): name for name in LOCATIONS}
+GENUS_LOOKUP = {name.casefold(): name for name in TAXA}
+SPECIES_LOOKUP = {
+    species.casefold(): species
+    for species_names in TAXA.values()
+    for species in species_names
+}
+
+# "ST" followed by exactly three ASCII digits ([0-9], unlike \d, excludes
+# other Unicode digits).
+RECORD_ID_PATTERN = re.compile(r"ST[0-9]{3}")
+
 
 def load_records(path: Path = INPUT_PATH) -> list[dict[str, str]]:
     """Read the survey and check its column names."""
@@ -37,29 +62,15 @@ def load_records(path: Path = INPUT_PATH) -> list[dict[str, str]]:
 
 def validate_record(
     row: dict[str, str],
-    source_row: int,
     accepted_ids: set[str],
 ) -> tuple[dict[str, str] | None, list[str]]:
-    """Clean one record, or return the reasons it cannot be used."""
-    import math
-    import re
+    """Clean one record, or return the reasons it cannot be used.
 
-    locations = ("Silwood Bottom", "Nash's Field", "Manor House", "Reactor Wood")
-    taxa = {
-        "Quercus": ("robur", "petraea"),
-        "Acer": ("pseudoplatanus",),
-        "Betula": ("pendula",),
-        "Fagus": ("sylvatica",),
-        "Fraxinus": ("excelsior",),
-    }
-    location_lookup = {name.casefold(): name for name in locations}
-    genus_lookup = {name.casefold(): name for name in taxa}
-    species_lookup = {
-        species.casefold(): species
-        for species_names in taxa.values()
-        for species in species_names
-    }
-
+    accepted_ids holds the identifiers of records accepted so far; it is read
+    but not changed here, because only an accepted record may reserve an
+    identifier (process_records() adds it).
+    """
+    # Remove surrounding whitespace; a missing field (None) becomes "".
     clean = {
         field: (row.get(field) or "").strip()
         for field in INPUT_FIELDS
@@ -69,40 +80,43 @@ def validate_record(
     record_id = clean["record_id"]
     if not record_id:
         reasons.append("missing record_id")
-    elif re.fullmatch(r"ST[0-9]{3}", record_id) is None:
+    elif RECORD_ID_PATTERN.fullmatch(record_id) is None:
         reasons.append("invalid record_id")
     elif record_id in accepted_ids:
         reasons.append("duplicate record_id")
 
+    # Text fields are matched without regard to case and written canonically.
     location = clean["location"]
     if not location:
         reasons.append("missing location")
-    elif location.casefold() not in location_lookup:
+    elif location.casefold() not in LOCATION_LOOKUP:
         reasons.append("invalid location")
     else:
-        clean["location"] = location_lookup[location.casefold()]
+        clean["location"] = LOCATION_LOOKUP[location.casefold()]
 
     genus = clean["genus"]
-    genus_valid = genus.casefold() in genus_lookup
+    genus_valid = genus.casefold() in GENUS_LOOKUP
     if not genus:
         reasons.append("missing genus")
     elif not genus_valid:
         reasons.append("invalid genus")
     else:
-        clean["genus"] = genus_lookup[genus.casefold()]
+        clean["genus"] = GENUS_LOOKUP[genus.casefold()]
 
     species = clean["species"]
-    species_valid = species.casefold() in species_lookup
+    species_valid = species.casefold() in SPECIES_LOOKUP
     if not species:
         reasons.append("missing species")
     elif not species_valid:
         reasons.append("invalid species")
     else:
-        clean["species"] = species_lookup[species.casefold()]
+        clean["species"] = SPECIES_LOOKUP[species.casefold()]
 
-    if genus_valid and species_valid and clean["species"] not in taxa[clean["genus"]]:
+    # The pairing is checked only when both names are individually recognised.
+    if genus_valid and species_valid and clean["species"] not in TAXA[clean["genus"]]:
         reasons.append("invalid genus/species combination")
 
+    # Distance must be in (0, 100]; angle must be in (0, 90).
     for field, upper_bound, include_upper in (
         ("distance_m", 100, True),
         ("angle_degrees", 90, False),
@@ -129,7 +143,6 @@ def validate_record(
     return clean, []
 
 
-
 def process_records(
     rows: Iterable[dict[str, str]],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
@@ -139,7 +152,7 @@ def process_records(
     issues: list[dict[str, str]] = []
 
     for source_row, row in enumerate(rows, start=2):
-        cleaned, reasons = validate_record(row, source_row, accepted_ids)
+        cleaned, reasons = validate_record(row, accepted_ids)
         if cleaned is not None:
             clean_records.append(cleaned)
             accepted_ids.add(cleaned["record_id"])
@@ -161,7 +174,6 @@ def summarise_oaks(clean_records: Iterable[dict[str, str]]) -> list[dict[str, st
             species = record["species"]
             counts[species] = counts.get(species, 0) + 1
     return [{"species": species, "count": str(counts[species])} for species in sorted(counts)]
-
 
 
 def write_csv(
