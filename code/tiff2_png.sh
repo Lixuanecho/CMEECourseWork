@@ -5,12 +5,18 @@
 #       results/ (created if needed; a PNG of the same name is replaced).
 #       Adapted from the course's current-directory starter so that, like the
 #       other scripts, it runs from the project root.
-# Input: data/*.tif. The repository ships no TIFF images on purpose; README.md
-#        shows how to test the script on generated images in a temporary copy,
-#        so nothing is added to data/.
+# Input: data/*.tif (lowercase .tif names only). data/example_image.tif is a
+#        small synthetic test image, so the script runs in a fresh clone;
+#        README.md says how it was made.
 # Requires: ImageMagick ('magick' in version 7, 'convert' in version 6)
-# Usage: bash code/tiff2_png.sh   (run from the project root)
+# Usage: bash code/tiff2_png.sh   (run from the project root; no arguments)
 # Date: Nov 2026
+
+# The script always reads data/, so stop instead of silently ignoring arguments
+if [ "$#" -ne 0 ]; then
+    printf 'Usage: bash code/tiff2_png.sh   (converts data/*.tif; takes no arguments)\n' >&2
+    exit 2
+fi
 
 # Use ImageMagick 7's 'magick' when it is installed, otherwise version 6's
 # 'convert' (the course starter's command); stop early if neither exists
@@ -29,7 +35,7 @@ for filename in data/*.tif
 do
     # If nothing matches, the loop gets the literal 'data/*.tif', which is not a real file
     if [[ ! -f "$filename" ]]; then
-        printf 'Error: no .tif files found in data/. The repository ships none; see README.md to test this script.\n' >&2
+        printf 'Error: no .tif files found in data/.\n' >&2
         exit 1
     fi
 

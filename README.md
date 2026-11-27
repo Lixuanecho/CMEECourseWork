@@ -49,6 +49,7 @@ CMEECourseWork/
 │   ├── trees.csv                   # tree distances and angles, 120 records (A3, basic_io.R)
 │   ├── pound_hill_data.csv         # species counts (A3, data_wrang*.R)
 │   ├── pound_hill_meta_data.csv    # metadata for the Pound Hill data
+│   ├── example_image.tif           # my own synthetic 64 × 48 test image for tiff2_png.sh (A4)
 │   └── bootcamp_observations.csv, bootcamp_observations_boundary.csv, bootcamp_observations_invalid.csv
 │                                   # ordinary, boundary and invalid observation records (A4)
 ├── results/          # generated outputs, Git-ignored
@@ -184,7 +185,7 @@ python3 -B "$tmp/code/clean_silwood_trees.py"; echo "exit status: $?"   # Error:
 rm -rf "$tmp"
 ```
 
-**Results on the supplied data.** Of the 36 records, 24 are accepted and 12 are rejected. The accepted oaks are 4 *petraea* and 4 *robur*. The 12 rejected records cover every kind of problem listed in the metadata. For example, line 26 of the source file has no ID, and line 37 breaks five rules at once (`invalid location; missing genus; missing species; invalid distance_m; missing angle_degrees`).
+**Results on the supplied data.** Of the 36 records, 24 are accepted and 12 are rejected. The accepted oaks are 4 *petraea* and 4 *robur*. The 12 rejected records illustrate 13 of the 16 rejection reasons listed in the metadata. For example, line 26 of the source file has no ID, and line 37 breaks five rules at once (`invalid location; missing genus; missing species; invalid distance_m; missing angle_degrees`).
 
 **Unit tests.** `test_silwood_trees.py` uses Python's `unittest`. All 28 tests pass:
 
@@ -270,7 +271,7 @@ git status --short data/                       # no output
 ```
 
 </details>
-```
+
 
 ### 3.3.2 Cultivation timing and plant species richness at Pound Hill
 
@@ -292,14 +293,14 @@ Rscript code/pound_hill_analysis.R
 
 1. **Tidy the data.** Transpose the raw table and reshape it into long format with `rep()`. The metadata say a blank count means the species was absent, so blanks become 0. All counts must then be finite, non-negative whole numbers.
 2. **Calculate richness.** Each quadrat is identified by `Cultivation`, `Block`, `Plot` and `Quadrat`. Count the species with `Count > 0` in each quadrat, then average the quadrats within each plot. Plots have 3–6 quadrats, so using plot means gives each treatment's four plots equal weight.
-3. **Compare treatments within blocks.** Each of the four blocks (a–d) has one plot per treatment, so `lm(MeanRichness ~ Cultivation + Block)` analyses the 12 plot means without mistaking block differences for treatment effects. A Friedman test on the ranks within blocks backs this up.
+3. **Compare treatments within blocks.** Each of the four blocks (a–d) has one plot per treatment, so `lm(MeanRichness ~ Cultivation + Block)` analyses the 12 plot means without mistaking block differences for treatment effects. A Friedman test on the ranks within blocks backs this up. With only four blocks, the χ² approximation that the script's `friedman.test()` prints (p = 0.050) is unreliable, so I also calculated the exact p-value separately from all 6⁴ = 1296 equally likely within-block rankings (see "Friedman by hand" below).
 
 | Check | What I did | Result |
 | - | - | - |
 | Data validation (built in) | The script checks count formats, quadrat IDs and the block design, and stops if any check fails | 41 species, 59 quadrats, 2,419 long-format rows (59 × 41), 12 plots, one plot per treatment in each block |
 | Figure matches CSV (built in) | The script re-reads the saved CSV and checks every point and mean line in the figure | `Figure check passed: 12 points and 3 treatment means match the CSV.` |
 | Independent recalculation | Recalculated each treatment's mean and range outside the script with `aggregate()` | Matches the table below |
-| Friedman by hand | Ranked plots within each block (1 = lowest): May ranks 3rd in all four blocks (rank sum 12); March and October both sum to 6; χ² = 12/48 × (12² + 6² + 6²) − 48 | χ² = 6.0, same as the script |
+| Friedman by hand | Ranked plots within each block (1 = lowest): May ranks 3rd in all four blocks (rank sum 12); March and October both sum to 6; χ² = 12/48 × (12² + 6² + 6²) − 48; then enumerated all 6⁴ = 1296 within-block rankings and counted those with χ² ≥ 6.0 | | χ² = 6.0, same as the script; exact p = 90/1296 = 0.069 (the script prints only the χ² approximation, p = 0.050) |
 | Figure by eye | Opened the PDF and compared it with the CSV | All 12 labels and values and the three mean lines match; each block's line peaks at May |
 
 **Results**
@@ -310,7 +311,7 @@ Rscript code/pound_hill_analysis.R
 | May | 9.65 ± 0.84 | 7.40–11.60 | P2, P4, P9, P12 |
 | October | 7.61 ± 0.84 | 6.40–10.25 | P1, P6, P8, P11 |
 
-Blocked analysis: Cultivation F(2, 6) = 1.77, p = 0.248; Block F(3, 6) = 1.41, p = 0.330; standard error of a difference between two treatment means = 1.19; Friedman χ² = 6.0, df = 2, p = 0.050.
+Blocked analysis: Cultivation F(2, 6) = 1.77, p = 0.248; Block F(3, 6) = 1.41, p = 0.330; standard error of a difference between two treatment means = 1.19; Friedman χ² = 6.0, exact p = 0.069 (the script prints the χ² approximation: df = 2, p = 0.050).
 
 **Interpretation** (full discussion in the comments at the end of `code/pound_hill_analysis.R`)
 
@@ -344,9 +345,9 @@ Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); r <- t(sapply
 | `CheckLabel.sh` | Checks the number of arguments, then the value with `[[ … ]]` joined by `&&`; errors go to stderr | `bash code/CheckLabel.sh oak` → `Selected species: oak`, status 0 (same for `pine`); `Oak` (case-sensitive) or `birch` → `Unknown label: …`, status 1; no argument or two arguments → usage message, status 2 |
 | `CountLines.sh` | Command substitution `$(wc -l < "$1")`; checks the argument and file before using them | `bash code/CountLines.sh data/trees.csv` → 121 lines; `data/fasta/407228326.fasta` → 27 lines (`wc -l` counts newlines and the last line has none; `awk 'END {print NR}'` gives 28); missing argument or file → error on stderr, status 1 |
 | `ConcatenateTwoFiles.sh` | Redirection: `>` empties the output and writes file 1, `>>` appends file 2; `-ef` refuses an output that is also an input (otherwise `>` would empty it before `cat` reads it) | `bash code/ConcatenateTwoFiles.sh data/bootcamp_observations.csv data/bootcamp_observations_boundary.csv results/observations_combined.csv` → 10 lines (5 + 5), first 5 identical to file 1 and last 5 to file 2, still 10 after a rerun; output same as an input, or a missing input → error, status 1, and `git status --short data/` shows nothing; joining the two FASTA files gives only one line starting with `>`, because the first file has no final newline |
-| `tiff2_png.sh` | A `for` loop over `data/*.tif`, `basename` to change the extension, and ImageMagick to write `results/<name>.png`; checks for the converter, the inputs and each conversion | `bash code/tiff2_png.sh` → `Converting data/example_image.tif`, status 0; `results/example_image.png` is a 64 × 48 PNG |
+| `tiff2_png.sh` | A `for` loop over `data/*.tif`, `basename` to change the extension, and ImageMagick to write `results/<name>.png`; checks its arguments, the converter, the inputs and each conversion | `bash code/tiff2_png.sh` → `Converting data/example_image.tif`, status 0; `magick identify results/example_image.png` → `PNG 64x48` |
 
-**Checking `tiff2_png.sh`.** I tested the script on `.tif` files and it converted them to PNG in `results/`. To keep `data/` tidy, I did not commit any images, so in a fresh clone the script stops with `Error: no .tif files found in data/.` (status 1); to run it, put your own `.tif` files in `data/` first.
+**Checking `tiff2_png.sh`.** `data/example_image.tif` is a synthetic 64 × 48 test image I made for this script with `magick -size 64x48 gradient:blue-yellow -depth 8 data/example_image.tif` (ImageMagick 7), so the script runs in a fresh clone.
 
 ### 3.4.2 Python scripts
 
@@ -427,7 +428,7 @@ At each pause, `N[t]` should equal `exp(t - 1)`. I got `2.718282` at `t = 2` and
 | **Assignment 4** | | |
 | `variables.sh`, `CheckLabel.sh`, `CountLines.sh`, `sysargv.py` | Command-line arguments. `variables.sh` also reads two lines of keyboard input. `CountLines.sh` reads the file named in its argument. | Prints only |
 | `ConcatenateTwoFiles.sh` | Two files (arguments 1 and 2) | The output file named in argument 3 and its directory if needed |
-| `tiff2_png.sh` | `data/*.tif` (no image included; the test creates one in a temporary copy of the repository, see Section 3.4.1) | `results/<image name>.png` |
+| `tiff2_png.sh` | `data/*.tif` (the repository includes `data/example_image.tif`) | `results/<image name>.png` |
 | `observations_practice.py` | `data/bootcamp_observations.csv` | Prints only |
 | `test_observations_practice.py` | `data/bootcamp_observations.csv`, `…_boundary.csv`, `…_invalid.csv` | One temporary test file, removed after testing |
 | `basic_io.R` | `data/trees.csv` | `results/MyData.csv` |
@@ -475,13 +476,13 @@ Feedback: `Feedback/assignment-3-2026.md` (assessed snapshot `4146a69`)
 
 | Feedback | Change (commit) | Check |
 | --- | --- | --- |
-| Check record 4 independently of the program's formula. | README Test 5 now reports a degree-mode calculator check with inputs, units and agreement (`0637457`). | 34.6166691975668 m × tan(23.336126555223°) = 34.6166691975668 × 0.431416 = 14.934 m; the script gives 14.934175 m (difference < 0.001 m). |
-| Isolate the fixed-route invalid test, which failed on row count ("Expected 120 tree records") rather than on the bad measurement. | Errors in both scripts now name the failing rows. README Test 6 keeps all 120 rows and columns, negates only record 4's distance and then restores the file (`0637457`). | The run stops with `Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 4`. `md5sum -c` shows the existing result is not overwritten; with no prior result, none is created. `get_TreeHeight.R` Test 4 reports `Invalid data row(s): 2` and writes no file. |
-| Make section 3.2 match the script (the README cited `tidyr::pivot_longer()` and abundance outputs). | Section 3.2 now describes the base-R route (`t()`, `rep()`) and lists only the richness CSV and PDF (`c776b03`). | The script uses base R only; a fresh run writes only these two files. |
-| Compare the plotted points and means with the CSV. | Added a figure check that re-reads the saved CSV and stops if any of the 12 points or 3 mean lines differ (`c776b03`). | The check passes on a fresh run (means: March 7.81, May 9.65, October 7.61), and Test 3 reproduces these with `aggregate()`. Altering the CSV, one point or one mean line in a copy of the script raised an error in each case. The PDF shows the same 12 labels and 3 lines. |
+| Check record 4 independently of the program's formula. | The "Hand check" test in Section 3.3.1 now reports a degree-mode calculator check with inputs, units and agreement (`0637457`). | 34.6166691975668 m × tan(23.336126555223°) = 34.6166691975668 × 0.431416 = 14.934 m; the script gives 14.934175 m (difference < 0.001 m). |
+| Isolate the fixed-route invalid test, which failed on row count ("Expected 120 tree records") rather than on the bad measurement. | Errors in both scripts now name the failing rows. The "Bad measurement (fixed input)" test in Section 3.3.1 keeps all 120 rows and columns, negates only record 4's distance in a temporary copy, so `data/trees.csv` is never changed (`0637457`). | The run stops with `Distance.m must be finite with 0 < distance <= 100. Invalid data row(s): 4`. `cmp` shows the existing result is not overwritten. The "Bad measurement (any input)" test of `get_TreeHeight.R` reports `Invalid data row(s): 2` and writes no file. |
+| Make the Pound Hill section match the script (the README cited `tidyr::pivot_longer()` and abundance outputs). | Section 3.3.2 now describes the base-R route (`t()`, `rep()`) and lists only the richness CSV and PDF (`c776b03`). | The script uses base R only; a fresh run writes only these two files. |
+| Compare the plotted points and means with the CSV. | Added a figure check that re-reads the saved CSV and stops if any of the 12 points or 3 mean lines differ (`c776b03`). | The check passes on a fresh run (means: March 7.81, May 9.65, October 7.61), and the "Independent recalculation" check in Section 3.3.2 reproduces these with `aggregate()`. Altering the CSV, one point or one mean line in a copy of the script raised an error in each case. The PDF shows the same 12 labels and 3 lines. |
 | Use comments to explain decisions; avoid repeated calculations. | Added headers and decision comments to the three R scripts and defined `months` once in `pound_hill_analysis.R`. Kept `TreeHeight()` in both tree-height scripts, since sourcing `TreeHeight.R` would rerun it and overwrite its output. Dropped `quote = FALSE` from `TreeHeight.R`, so both scripts write identical CSVs (`0637457`, `c776b03`). | `diff` finds `results/TreeHts.csv` and `results/trees_treeheights.csv` identical (at `4146a69` they differed in quoting). |
 
-I made two commits for the Assignment 3 revisions. The first covered tree height and Section 3.1 (22 November 2026, 0637457), and the second covered Pound Hill and Section 3.2 (25 November 2026, c776b03).
+I made two commits for the Assignment 3 revisions. The first covered tree height and Section 3.3.1 (22 November 2026, 0637457), and the second covered Pound Hill and Section 3.3.2 (25 November 2026, c776b03).
 
 ## 6. AI use
 | Date | Tool | What I used it for | How I checked the result |
