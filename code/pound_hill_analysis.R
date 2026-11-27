@@ -41,6 +41,21 @@ plot_richness_figure <- function(plot_means, path) {
   graphics::axis(2, at = pretty(y_limits), las = 1, cex.axis = 0.95)
   graphics::box(bty = "l", col = "#9299A2")
 
+  # Thin grey lines join the three plots of each block (line type = block),
+  # drawn first so the points sit on top. A line that peaks at May in every
+  # block shows the within-block pattern that the blocked analysis tests.
+  block_lty <- c(a = 1, b = 2, c = 3, d = 4)
+  for (b in names(block_offsets)) {
+    in_block <- plot_means[plot_means$Block == b, ]
+    in_block <- in_block[match(months, in_block$Cultivation), ]
+    graphics::lines(seq_along(months) + block_offsets[[b]],
+                    in_block$MeanRichness, col = "#A3AAB3", lwd = 1.1,
+                    lty = block_lty[[b]])
+  }
+  graphics::legend("topright", legend = paste("Block", names(block_lty)),
+                   lty = block_lty, col = "#A3AAB3", lwd = 1.1, bty = "n",
+                   cex = 0.75, text.col = "#57616D")
+
   drawn_points <- list()
   drawn_means <- numeric(0)
   for (i in seq_along(months)) {
@@ -72,8 +87,12 @@ plot_richness_figure <- function(plot_means, path) {
   graphics::mtext("Mean species richness (species per quadrat)",
                   side = 2, line = 3.8, cex = 1.02)
   graphics::mtext(
-    "Points = individual plots (labelled by plot ID); lines = treatment means (4 plots each)",
-    side = 1, line = 4.65, cex = 0.78, col = "#57616D"
+    "Points = individual plots (labelled by plot ID); black lines = treatment means (4 plots each)",
+    side = 1, line = 4.3, cex = 0.78, col = "#57616D"
+  )
+  graphics::mtext(
+    "Grey lines join the three plots in the same block (line type = block a-d)",
+    side = 1, line = 5.25, cex = 0.78, col = "#57616D"
   )
 
   invisible(list(points = do.call(rbind, drawn_points), means = drawn_means))
