@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import math
 import re
+import sys
 from decimal import Decimal
 from pathlib import Path
 from typing import Iterable
@@ -66,6 +67,9 @@ def load_records(path: Path = INPUT_PATH) -> list[tuple[int, dict[str, str]]]:
     the wrong source_row. (For a record whose quoted field spans several
     lines, line_num is the record's last line.)
     """
+    if not path.is_file():
+        shown = path.relative_to(PROJECT_ROOT) if path.is_relative_to(PROJECT_ROOT) else path
+        raise FileNotFoundError(f"Input file not found: {shown}")
     with path.open(newline="", encoding="utf-8") as source:
         reader = csv.DictReader(source)
         if reader.fieldnames != INPUT_FIELDS:
@@ -248,4 +252,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        # A missing, unreadable or malformed input stops the program with a
+        # clear message and exit status 1 instead of a traceback. The input is
+        # read and checked before any output is written, so results/ is left
+        # as it was.
+        sys.exit(f"Error: {error}")

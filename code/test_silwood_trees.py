@@ -304,6 +304,30 @@ class TestFileWorkflow(unittest.TestCase):
             self.assertEqual(issues, [{"source_row": "4", "record_id": "ST002",
                                        "reasons": "distance_m out of range"}])
 
+    def test_missing_input_file_gives_clear_error(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(FileNotFoundError, "Input file not found"):
+                trees.load_records(Path(folder) / "missing.csv")
+
+    def test_command_line_run_without_input_stops_cleanly(self):
+        """With no data/ folder: exit status 1, one-line error, nothing written."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "code").mkdir()
+            script = root / "code" / "clean_silwood_trees.py"
+            script.write_bytes(Path(trees.__file__).read_bytes())
+            outcome = subprocess.run(
+                [sys.executable, "-B", str(script)],
+                cwd=root, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(outcome.returncode, 1)
+            self.assertEqual(outcome.stdout, "")
+            self.assertEqual(
+                outcome.stderr.strip(),
+                "Error: Input file not found: data/silwood_trees_raw.csv",
+            )
+            self.assertFalse((root / "results").exists())
+
     def test_main_writes_all_outputs_and_preserves_input(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
