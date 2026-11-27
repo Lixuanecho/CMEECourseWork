@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Validate and clean the synthetic Silwood tree survey."""
+"""Validate and clean the synthetic Silwood tree survey.
+
+Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
+Script: clean_silwood_trees.py
+Desc:   Reads data/silwood_trees_raw.csv, checks every record against the rules
+        in data/silwood_trees_metadata.md and writes three files to results/
+        (created if needed, replaced on every run):
+          silwood_trees_clean.csv  accepted records in canonical form
+          silwood_tree_issues.csv  rejected records with their reasons
+          oak_species_counts.csv   accepted Quercus records per species
+        Values are never corrected or inferred: a record that breaks a rule
+        is rejected with every reason that applies, in the metadata's order.
+Usage:  python3 code/clean_silwood_trees.py   (run from the repository root)
+        Importing the module reads and writes nothing; the tests import it.
+Date:   Oct 2026 (revised Nov 2026)
+"""
 
 from __future__ import annotations
 

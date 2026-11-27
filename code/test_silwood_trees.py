@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Unit and integration tests for the synthetic Silwood tree-survey workflow."""
+"""Unit and integration tests for the synthetic Silwood tree-survey workflow.
+
+Author: Lixuan Zhu (lixuan.zhu26@imperial.ac.uk)
+Script: test_silwood_trees.py
+Desc:   unittest suite for code/clean_silwood_trees.py. It checks every rule in
+        data/silwood_trees_metadata.md (missing, invalid and boundary values,
+        the order of rejection reasons, duplicate identifiers, oak counts),
+        the line numbers reported as source_row (also after a blank line),
+        decimal output for small numbers, clear errors for a missing input,
+        that importing the module has no side effects, and that a rerun gives
+        identical files without changing the input. All file tests use
+        temporary folders, so the repository's data/ and results/ are not used.
+Usage:  python3 -B code/test_silwood_trees.py   (run from the repository root;
+        -B stops Python writing code/__pycache__/)
+Date:   Oct 2026 (revised Nov 2026)
+"""
 
 import csv
 import os
