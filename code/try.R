@@ -23,7 +23,8 @@ set.seed(1345) # get the same result for illustration
 
 popn <- rnorm(50)
 
-# Save the histogram to results
+# Save the histogram to results (created here, because results/ is Git-ignored)
+dir.create("results", showWarnings = FALSE)
 pdf("results/try_population.pdf")
 hist(popn)
 invisible(dev.off())
