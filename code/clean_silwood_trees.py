@@ -49,15 +49,23 @@ SPECIES_LOOKUP = {
 RECORD_ID_PATTERN = re.compile(r"ST[0-9]{3}")
 
 
-def load_records(path: Path = INPUT_PATH) -> list[dict[str, str]]:
-    """Read the survey and check its column names."""
+def load_records(path: Path = INPUT_PATH) -> list[tuple[int, dict[str, str]]]:
+    """Read the survey, check its column names and number its records.
+
+    Returns (line number, row) pairs, where the header is line 1. The line
+    number comes from reader.line_num because csv.DictReader skips blank
+    lines: counting rows instead would give every record after a blank line
+    the wrong source_row. (For a record whose quoted field spans several
+    lines, line_num is the record's last line.)
+    """
     with path.open(newline="", encoding="utf-8") as source:
         reader = csv.DictReader(source)
         if reader.fieldnames != INPUT_FIELDS:
             raise ValueError(
                 f"Expected columns {INPUT_FIELDS}, found {reader.fieldnames}"
             )
-        return list(reader)
+        # reader.line_num is read after each row, so it is that row's line
+        return [(reader.line_num, row) for row in reader]
 
 
 def validate_record(
@@ -144,14 +152,20 @@ def validate_record(
 
 
 def process_records(
-    rows: Iterable[dict[str, str]],
+    numbered_rows: Iterable[tuple[int, dict[str, str]]],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    """Sort records into accepted rows and issue reports."""
+    """Sort records into accepted rows and issue reports.
+
+    numbered_rows holds (line number, row) pairs as returned by
+    load_records(); the line number is reported as source_row. Rows are
+    processed in file order, so the first valid row with an identifier
+    reserves it.
+    """
     accepted_ids: set[str] = set()
     clean_records: list[dict[str, str]] = []
     issues: list[dict[str, str]] = []
 
-    for source_row, row in enumerate(rows, start=2):
+    for source_row, row in numbered_rows:
         cleaned, reasons = validate_record(row, accepted_ids)
         if cleaned is not None:
             clean_records.append(cleaned)

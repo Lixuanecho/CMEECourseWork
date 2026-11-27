@@ -24,6 +24,16 @@ def make_record(**changes):
     return row
 
 
+def numbered(rows, first_line=2):
+    """Pair rows with the line numbers they would have in a CSV file.
+
+    process_records() takes (line number, row) pairs, as load_records()
+    returns them. In a file with a header and no blank lines, the first record
+    is on line 2.
+    """
+    return list(enumerate(rows, start=first_line))
+
+
 class TestValidation(unittest.TestCase):
     """Exercise every field and rejection category in the metadata."""
 
@@ -144,7 +154,7 @@ class TestProcessing(unittest.TestCase):
                 make_record(record_id="ST003", distance_m="0"),
                 make_record(record_id="ST001"),
                 make_record(record_id="bad", location="Wrong")]
-        accepted, issues = trees.process_records(rows)
+        accepted, issues = trees.process_records(numbered(rows))
         self.assertEqual([row["record_id"] for row in accepted], ["ST001", "ST002"])
         self.assertEqual(issues, [
             {"source_row": "3", "record_id": "ST003",
@@ -155,13 +165,13 @@ class TestProcessing(unittest.TestCase):
 
     def test_invalid_row_does_not_reserve_identifier(self):
         rows = [make_record(distance_m="bad"), make_record()]
-        accepted, issues = trees.process_records(rows)
+        accepted, issues = trees.process_records(numbered(rows))
         self.assertEqual(len(accepted), 1)
         self.assertEqual(accepted[0]["record_id"], "ST001")
         self.assertEqual(issues[0]["reasons"], "invalid distance_m")
 
     def test_first_accepted_id_is_reserved(self):
-        accepted, issues = trees.process_records([make_record(), make_record()])
+        accepted, issues = trees.process_records(numbered([make_record(), make_record()]))
         self.assertEqual(len(accepted), 1)
         self.assertEqual(issues[0]["reasons"], "duplicate record_id")
 
@@ -169,7 +179,7 @@ class TestProcessing(unittest.TestCase):
         rows = [make_record(), make_record(record_id="ST002", species="petraea"),
                 make_record(record_id="ST003", genus="Acer", species="pseudoplatanus"),
                 make_record(record_id="ST004")]
-        accepted, _ = trees.process_records(rows)
+        accepted, _ = trees.process_records(numbered(rows))
         self.assertEqual(trees.summarise_oaks(accepted), [
             {"species": "petraea", "count": "1"},
             {"species": "robur", "count": "2"},
@@ -188,7 +198,7 @@ class TestProcessing(unittest.TestCase):
             ),
         ]
 
-        accepted, issues = trees.process_records(rows)
+        accepted, issues = trees.process_records(numbered(rows))
 
         self.assertEqual(len(accepted), 1)
         self.assertEqual(len(issues), 1)
@@ -207,7 +217,7 @@ class TestProcessing(unittest.TestCase):
                         distance_m="0"),
         ]
 
-        clean_records, issues = trees.process_records(rows)
+        clean_records, issues = trees.process_records(numbered(rows))
         self.assertEqual([row["record_id"] for row in clean_records], ["ST001"])
         self.assertEqual(issues, [{
             "source_row": "3", "record_id": "ST002",
@@ -252,6 +262,25 @@ class TestFileWorkflow(unittest.TestCase):
             path.write_text("wrong,header\na,b\n", encoding="utf-8")
             with self.assertRaises(ValueError):
                 trees.load_records(path)
+
+    def test_source_row_after_a_blank_line(self):
+        """Regression test: csv skips blank lines, but source_row must not."""
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "raw.csv"
+            header = ",".join(trees.INPUT_FIELDS)
+            path.write_text(
+                f"{header}\n"                                          # line 1
+                "ST001,Silwood Bottom,Quercus,robur,12.5,35\n"          # line 2
+                "\n"                                                   # line 3 (blank)
+                "ST002,Silwood Bottom,Quercus,robur,0,35\n",            # line 4
+                encoding="utf-8",
+            )
+            numbered_rows = trees.load_records(path)
+            self.assertEqual([line for line, _ in numbered_rows], [2, 4])
+            accepted, issues = trees.process_records(numbered_rows)
+            self.assertEqual([row["record_id"] for row in accepted], ["ST001"])
+            self.assertEqual(issues, [{"source_row": "4", "record_id": "ST002",
+                                       "reasons": "distance_m out of range"}])
 
     def test_main_writes_all_outputs_and_preserves_input(self):
         with tempfile.TemporaryDirectory() as folder:
