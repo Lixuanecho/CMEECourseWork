@@ -495,3 +495,6 @@ I made two commits for the Assignment 3 revisions. The first covered tree height
 ---
 
 ## 7. Clean-Clone Check
+On 27 November 2026, on macOS, I cloned the repository into an empty folder (git clone https://github.com/Lixuanecho/CMEECourseWork.git) and checked 18c2cfc, then the latest commit on main, using the software listed in Section 2. Later commits change only README.md.
+
+Following only this README, I ran every command and check in Section 3 (How to run and check each script) from the repository root, and all results matched. The five Assignment 1 answers and the converter checks agreed. clean_silwood_trees.py created the three CSV files and passed all 28 tests. Both tree-height scripts wrote the same 120 heights, and the Pound Hill figure check passed. Every practice-script check passed as well, including tiff2_png.sh, which created results/example_image.png.
