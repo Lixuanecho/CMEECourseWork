@@ -30,7 +30,7 @@
 | Assignment 1 | Process FASTA files with Unix commands; write two delimiter-conversion scripts | `unixPrac1.txt`, `tabtocsv.sh`, `csvtospace.sh` |
 | Assignment 2 | Validate and clean the simulated Silwood tree-survey data with Python, and write unit tests | `clean_silwood_trees.py`, `test_silwood_trees.py` |
 | Assignment 3 | Calculate tree heights from distances and angles with R, and analyse plant species richness at Pound Hill | `TreeHeight.R`, `get_TreeHeight.R`, `run_get_TreeHeight.sh`, `pound_hill_analysis.R` |
-| Assignment 4 | 30 in-class practice scripts | Shell (7): `boilerplate.sh`, `MyExampleScript.sh`, `variables.sh`, `CheckLabel.sh`, `CountLines.sh`, `ConcatenateTwoFiles.sh`, `tiff2_png.sh`<br>Python (12): `boilerplate.py`, `MyExampleScript.py`, `loops.py`, `cfexercises1.py`, `cfexercises2.py`, `control_flow.py`, `test_control_flow.py`, `using_name.py`, `sysargv.py`, `debugme.py`, `observations_practice.py`, `test_observations_practice.py`<br>R (11): `boilerplate.R`, `basic_io.R`, `control_flow.R`, `r_conditionals.R`, `break.R`, `next.R`, `try.R`, `browse.R`, `observations_practice.R`, `data_wrang.R`, `data_wrang_tidy.R` |
+| Assignment 4 | 30 in-class practice scripts, each described in Section 3.4 | Shell (7): `boilerplate.sh`, `MyExampleScript.sh`, `variables.sh`, `CheckLabel.sh`, `CountLines.sh`, `ConcatenateTwoFiles.sh`, `tiff2_png.sh`<br>Python (12): `boilerplate.py`, `MyExampleScript.py`, `loops.py`, `cfexercises1.py`, `cfexercises2.py`, `control_flow.py`, `test_control_flow.py`, `using_name.py`, `sysargv.py`, `debugme.py`, `observations_practice.py`, `test_observations_practice.py`<br>R (11): `boilerplate.R`, `basic_io.R`, `control_flow.R`, `r_conditionals.R`, `break.R`, `next.R`, `try.R`, `browse.R`, `observations_practice.R`, `data_wrang.R`, `data_wrang_tidy.R` |
 
 ### Repository structure
 
@@ -82,7 +82,7 @@ sudo apt install imagemagick      # Ubuntu (ImageMagick 6)
 ## 3. How to run and check each script
 
 - Run all commands from the project root. Scripts save output files to results/ and create it if needed.
-- Expected outputs appear in comments beside the commands. Intentional errors are marked.
+- Expected outputs appear in comments beside the commands, or in the table in Section 3.4. Intentional errors are marked.
 - Commands that import other scripts use python3 -B to avoid creating __pycache__/.
 
 ## 3.1 Assignment 1 — UNIX and Bash
@@ -328,6 +328,83 @@ Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); r <- t(sapply
 
 </details>
 
+## 3.4 Assignment 4 — in-class practice scripts
+
+- Each table row is one script: the idea it shows, and the commands I used to check it, with the results.
+- All paths are relative to the project root. Scripts create `results/` before writing to it.
+- Section 4 lists the files each script reads and writes.
+
+### 3.4.1 Shell scripts
+
+| Script | What it shows | How I checked it |
+| - | - | - |
+| `boilerplate.sh` | Basic script layout: shebang line, header comment, and `echo -e` turning `\n` into a newline | `bash code/boilerplate.sh` → blank line, `This is a shell script! `, blank line; exit status 0 (no explicit `exit`, so the status comes from the last `echo`) |
+| `MyExampleScript.sh` | Assigning variables (`MSG1="Hello"`, `MSG2=$USER`) and the `USER` environment variable | `bash code/MyExampleScript.sh` → `Hello <your user name>` twice, then a blank line; `env -u USER bash code/MyExampleScript.sh` → just `Hello ` (`USER` is unset in some containers) |
+| `variables.sh` | Special parameters (`$#`, `$0`, `$*`, `$1`, `$2`), reading input with `read -r -p`, and integer arithmetic with `$((a + b))` | `bash code/variables.sh one two`, then type a string and two integers. To repeat it exactly: `printf 'new value\n3 4\n' \| bash code/variables.sh one two` → 2 parameters, `Now MY_VAR is: new value`, sum 7. With no input (`< /dev/null`) it uses the defaults 0 and 0; `read -r` keeps backslashes. The script assumes integer input |
+| `CheckLabel.sh` | Checks the number of arguments, then the value with `[[ … ]]` joined by `&&`; errors go to stderr | `bash code/CheckLabel.sh oak` → `Selected species: oak`, status 0 (same for `pine`); `Oak` (case-sensitive) or `birch` → `Unknown label: …`, status 1; no argument or two arguments → usage message, status 2 |
+| `CountLines.sh` | Command substitution `$(wc -l < "$1")`; checks the argument and file before using them | `bash code/CountLines.sh data/trees.csv` → 121 lines; `data/fasta/407228326.fasta` → 27 lines (`wc -l` counts newlines and the last line has none; `awk 'END {print NR}'` gives 28); missing argument or file → error on stderr, status 1 |
+| `ConcatenateTwoFiles.sh` | Redirection: `>` empties the output and writes file 1, `>>` appends file 2; `-ef` refuses an output that is also an input (otherwise `>` would empty it before `cat` reads it) | `bash code/ConcatenateTwoFiles.sh data/bootcamp_observations.csv data/bootcamp_observations_boundary.csv results/observations_combined.csv` → 10 lines (5 + 5), first 5 identical to file 1 and last 5 to file 2, still 10 after a rerun; output same as an input, or a missing input → error, status 1, and `git status --short data/` shows nothing; joining the two FASTA files gives only one line starting with `>`, because the first file has no final newline |
+| `tiff2_png.sh` | A `for` loop over `data/*.tif`, `basename` to change the extension, and ImageMagick to write `results/<name>.png`; checks for the converter, the inputs and each conversion | `bash code/tiff2_png.sh` → `Converting data/example_image.tif`, status 0; `results/example_image.png` is a 64 × 48 PNG |
+
+**Checking `tiff2_png.sh`.** I tested the script on `.tif` files and it converted them to PNG in `results/`. To keep `data/` tidy, I did not commit any images, so in a fresh clone the script stops with `Error: no .tif files found in data/.` (status 1); to run it, put your own `.tif` files in `data/` first.
+
+### 3.4.2 Python scripts
+
+| Script | What it shows | How I checked it |
+| - | - | - |
+| `boilerplate.py` | Program template: module docstring, `main(argv)`, and `sys.exit(status)` under `if __name__ == "__main__":` | `python3 code/boilerplate.py` → `This is a boilerplate`, status 0. Importing it runs nothing: `python3 -B -c 'import sys; sys.path.insert(0, "code"); import boilerplate'` prints nothing |
+| `MyExampleScript.py` | A first function: `foo(x)` squares `x` with `x *= x` and prints it | `python3 code/MyExampleScript.py` → `4` (the script calls `foo(2)`) |
+| `loops.py` | `for` over `range()` and a list, running totals, and a `while` loop | `python3 code/loops.py \| wc -l` → 116 lines = 5 + 6 + 5 + 100: `range(5)` prints 0–4, the list has 6 items, the totals are 0, 1, 12, 123, 1234, and the `while` loop counts to 100 |
+| `cfexercises1.py` | Functions with conditions and loops: square root (`foo_1`), larger value (`foo_2`), sorting three numbers (`foo_3`), and factorials by for loop, recursion and while loop (`foo_4`–`foo_6`) | `python3 code/cfexercises1.py` → `foo_1(9) = 3.0`, `foo_2(10, 5) = 10`, `foo_3(9, 3, 6) = [3, 6, 9]`, `foo_4(5) = foo_5(5) = foo_6(5) = 120`, and the extra `foo_5(10) = 3628800` |
+| `cfexercises2.py` | Controlling loops with `if`/`elif`, `while` conditions and `break` | `python3 code/cfexercises2.py \| grep -c '^hello$'` → 35, matching my hand count 4 + 4 + 14 + 5 + 8 (`hello_1(12)`, `hello_2(12)`, `hello_3(3, 17)`, `hello_4(0)`, `hello_5(12)`). `hello!` prints only 0–5, because `hello_6` breaks at y = 6 |
+| `control_flow.py` | `if`/`elif`/`else`, `for` loops and early `return`: even or odd, the largest divisor from 2–5, and primes | `python3 code/control_flow.py` → `22 is Even!`, `33 is Odd!`, `The largest divisor of 120 is 5`, `No divisor found for 121!` (121 = 11 × 11), then the 25 primes from 2 to 100 |
+| `test_control_flow.py` | Doctests in the docstring of `even_or_odd()`, including a negative number | `python3 -B code/test_control_flow.py` → `22 is Even!`, `33 is Odd!`, doctests pass silently. `python3 -B -m doctest -v code/test_control_flow.py \| tail -n 3` → `3 tests in 3 items.`, `3 passed.`, `Test passed.` |
+| `using_name.py` | `__name__` is `"__main__"` when run directly and the module name when imported | `python3 code/using_name.py` → `This program is being run by itself!`, `This module's name is: __main__`. `python3 -B -c 'import sys; sys.path.insert(0, "code"); import using_name'` → `I am being imported from another script/program/module!`, `This module's name is: using_name` |
+| `sysargv.py` | Command-line arguments in `sys.argv`; the first item is the script name | `python3 code/sysargv.py var1 var2 var3` → 4 arguments: `['code/sysargv.py', 'var1', 'var2', 'var3']`. No arguments → 1 (just the script name). `"two words"` in quotes counts as one argument |
+| `debugme.py` | Handling errors with `try`/`except`/`else`, and debugging with `pdb` | `python3 code/debugme.py \| tail -n 5` → `buggyfunc(20) returned: 20.0` (every division from y = 19 down to 1 works, so it returns 20 / 1); `buggyfunc(1)` and `buggyfunc(0)` return `None`. The division-by-zero messages are intended. `pdb` use is below the table |
+| `observations_practice.py` | Validates observation records and returns `(known total, number of missing counts)` per site; tells a missing count from an observed 0, skips exact duplicates, and validates every row before counting | `python3 code/observations_practice.py` → `A: (2, 1)`, `B: (0, 0)`, matching my hand count from `data/bootcamp_observations.csv`. Run from `code/` (no `data/` there) → `Error: Input file not found: data/bootcamp_observations.csv`, status 1 |
+| `test_observations_practice.py` | `assert` tests, as in the course, for normal input, boundary cases, expected failures and unchanged input, plus my hand-worked site E. Failures tested: `+2`, ` 2`, `02`, `1_000`, `2.0`, a blank site or date, `"2"` and `"02"` for the same site and date, a missing file and wrong column names | `python3 -B code/test_observations_practice.py` → `All observation checks passed.` `python3 -B -O code/test_observations_practice.py` → refuses to run, status 1 (`-O` strips `assert`, so the tests would pass without checking anything) |
+
+**Debugging `debugme.py` with `pdb`.** I ran `python3 -m pdb code/debugme.py` with the breakpoint `b 24, y == 0`, which pauses at `z = x / y` only when the divisor is 0; `p x, y, i` showed `(20, 0, 19)`. Inside `buggyfunc()`, press `c` rather than `q`: the `bdb.BdbQuit` raised by `q` is caught by `except Exception`, so the program leaves the debugger and keeps running.
+
+**Shared rules for the observation exercise.** The Python and R versions follow the same rules. The file must have exactly the columns `site`, `date` and `count`, in that order. Site and date cannot be empty or only spaces. An empty `count` means missing; any other value must match `^(0|[1-9][0-9]*)$`, so `+2`, ` 2`, `02` and `1_000` are errors. A record with the same site, date and count as an earlier one is skipped. R also rejects counts above 2,147,483,647 (its integer limit); Python has no such limit.
+
+### 3.4.3 R scripts
+
+| Script | What it shows | How I checked it |
+| - | - | - |
+| `boilerplate.R` | Defining and calling a function; `class()` to check argument types | `Rscript code/boilerplate.R` → `my_function(1, 2)` prints the type of both arguments (`numeric`) and returns `1 2`; `my_function("riki", "Tiki")` prints type `character` and returns the two strings (the calls are at the top level of the script, so `Rscript` prints the return values) |
+| `basic_io.R` | Reading data with `read.csv()`, writing with `write.csv()` and `write.table()`, appending (`append = TRUE`), and controlling row and column names | `Rscript code/basic_io.R`, then `wc -l < results/MyData.csv` → 120: every write without `append = TRUE` overwrites the file, and the last `write.table()` writes 120 space-separated lines with row names and no header; the first line is `"1" "Populus tremula" 31.6658337740228 41.2826361937914`. Run from `code/` → `Error: Input file not found: data/trees.csv …`, status 1 |
+| `control_flow.R` | `if`/`else`, `for` and `while` loops, and controlling loops with `next`, `break` and a safety limit | `Rscript code/control_flow.R \| grep -c 'squared is'` → 10 (i = 1–10); `odd i` appears only for 1, 3, 5, 7, 9 (`next` skips even numbers); the last three lines run from `Reached i >= 9, breaking loop` to `Script complete!`. `z` comes from `runif(1)` with no seed set, so the `z <= 0.5` or `z > 0.5` line can differ between runs |
+| `r_conditionals.R` | Conditionals inside functions with default arguments: odd or even, power of 2, prime | `Rscript code/r_conditionals.R` → 6 is even, 7 is odd; 4 is a power of 2, 5 is not; 2, 3 and 13 are prime, 10 is composite. `is.power2()` checks whether `log2(n)` is a whole number; `is.prime()` handles 0, 1 and 2 first, so the edge case n = 2 is also correct |
+| `break.R` | Leaving a loop with `break` | `Rscript code/break.R` → 10 lines, from `i equals 0` to `i equals 9`; the loop stops when i reaches 10 |
+| `next.R` | Skipping an iteration with `next` | `Rscript code/next.R` → 1, 3, 5, 7, 9, one per line (the even numbers in 1–10 are skipped) |
+| `try.R` | Catching errors with `try()` so the remaining replicate simulations carry on after one fails; the histogram is saved to `results/try_population.pdf` | `Rscript code/try.R 2>/dev/null \| tail -n 2` → `Runs caught as errors: 7 11 13`, `Successful runs: 12 of 15`; the five `Error in doit(popn) : Couldn't calculate mean: too few unique values!` lines on standard error are triggered on purpose and caught by `try()`; `set.seed(1345)` makes the results reproducible |
+| `browse.R` | Interactive debugging with `browser()` inside a loop that simulates exponential growth | Needs an interactive R session; how to start it and what to check are below the table. `Rscript code/browse.R` does not pause and only prints trace output (`Called from: Exponential()`, `debug: …`); the plot is written to `Rplots.pdf` in the project root (ignored by `.gitignore`) |
+| `observations_practice.R` | R version of the observation-records exercise: `read_observations()` checks the columns, blank sites and dates, and the count format, and reports the line number of any bad row; `summarise_observations()` removes duplicate records and reports `total_known` and `missing_count` per site; base R plots the sum of known counts per site; the input is read once, only through the validating reader | `Rscript code/observations_practice.R \| tail -n 1` → `All checks passed. Figure saved to results/observations_known_totals.pdf`. The built-in checks require A `(2, 1)`, B `(0, 0)`, C `(NA, 2)`, D `(0, 0)` (same as the Python version) and confirm that invalid files are rejected with an error naming the count value (`found '-1'`); in the figure, site C is labelled `NA (all missing)` instead of being drawn as 0. Run from `code/` → `Error: Input file not found: …`, status 1 |
+| `data_wrang.R` | Transposing the Pound Hill data, then turning the wide table into a long one with `reshape2::melt()` | `Rscript code/data_wrang.R > /dev/null`, then `wc -l < results/pound_hill_long.csv` → 2420 (header + 59 quadrats × 41 species); line 2 is `"october","a","1","Q1","Achillea millefolium",4` |
+| `data_wrang_tidy.R` | The same conversion with `tidyr::pivot_longer()` and `dplyr`; stops with a clear message if a package or the input file is missing | `Rscript code/data_wrang_tidy.R \| tail -n 1` → `Saved results/pound_hill_long_tidy.csv with 2419 rows` |
+
+**Debugging `browse.R` interactively.** `browser()` needs an interactive R session. Start R from the project root and load the script with `source()`. R pauses at each generation in the growth loop. Here’s my debugging session and the variables I checked:
+
+```text
+$ R --vanilla
+> source("code/browse.R")
+Called from: Exponential()
+Browse[1]> ls()         # [1] "N" "N0" "generations" "r" "t": the variables inside Exponential()
+Browse[1]> t            # [1] 2: the first stop is generation 2
+Browse[1]> N[t]         # [1] 2.718282, i.e. N[1] * exp(r) with N0 = 1 and r = 1
+Browse[1]> c            # continue to the next stop
+Called from: Exponential()
+Browse[1]> t            # [1] 3
+Browse[1]> N[t]         # [1] 7.389056 = exp(2)
+Browse[1]> n            # run the next line: debug at code/browse.R#32: N[t] <- N[t - 1] * exp(r)
+Browse[2]> Q            # leave the browser and stop the run
+> q()
+```
+
+At each pause, `N[t]` should equal `exp(t - 1)`. I got `2.718282` at `t = 2` and `7.389056` at `t = 3`. Use `n` to step through one line, `c` to continue to the next pause, and `Q` to quit the debugger and stop the run. If you press `c` at every pause, the loop finishes and the script draws the plot.
+
 ## 4. Input and output files of each program
 
 - All paths are relative to the project root. 
@@ -347,6 +424,19 @@ Rscript -e 'x <- read.csv("results/pound_hill_plot_richness.csv"); r <- t(sapply
 | `get_TreeHeight.R` | A CSV file passed as an argument, e.g. `data/trees.csv` | `results/<input name>_treeheights.csv` |
 | `run_get_TreeHeight.sh` | `data/trees.csv` via `get_TreeHeight.R` | `results/trees_treeheights.csv` |
 | `pound_hill_analysis.R` | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | `results/pound_hill_plot_richness.csv`, `results/pound_hill_plot_richness.pdf` (block analysis results are printed only) |
+| **Assignment 4** | | |
+| `variables.sh`, `CheckLabel.sh`, `CountLines.sh`, `sysargv.py` | Command-line arguments. `variables.sh` also reads two lines of keyboard input. `CountLines.sh` reads the file named in its argument. | Prints only |
+| `ConcatenateTwoFiles.sh` | Two files (arguments 1 and 2) | The output file named in argument 3 and its directory if needed |
+| `tiff2_png.sh` | `data/*.tif` (no image included; the test creates one in a temporary copy of the repository, see Section 3.4.1) | `results/<image name>.png` |
+| `observations_practice.py` | `data/bootcamp_observations.csv` | Prints only |
+| `test_observations_practice.py` | `data/bootcamp_observations.csv`, `…_boundary.csv`, `…_invalid.csv` | One temporary test file, removed after testing |
+| `basic_io.R` | `data/trees.csv` | `results/MyData.csv` |
+| `try.R` | Simulated data (`rnorm`, seed `1345`) | `results/try_population.pdf` |
+| `browse.R` | – | One plot. `Rscript` saves it as `Rplots.pdf` in the project root (ignored by Git). Interactive R displays it in the plot window. |
+| `observations_practice.R` | `data/bootcamp_observations.csv`, `…_boundary.csv`, `…_invalid.csv` | `results/observations_known_totals.pdf` |
+| `data_wrang.R` | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | `results/pound_hill_long.csv` |
+| `data_wrang_tidy.R` | `data/pound_hill_data.csv`, `data/pound_hill_meta_data.csv` | `results/pound_hill_long_tidy.csv` |
+| Other practice scripts (16) — `boilerplate.sh`, `MyExampleScript.sh`, `boilerplate.py`, `MyExampleScript.py`, `loops.py`, `cfexercises1.py`, `cfexercises2.py`, `control_flow.py`, `test_control_flow.py`, `using_name.py`, `debugme.py`, `boilerplate.R`, `control_flow.R`, `r_conditionals.R`, `break.R`, `next.R` | – | Prints only |
 
 ---
 
